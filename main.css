@@ -23,7 +23,7 @@ html {
     z-index: 2;
 }
 #control-pane button {
-    margin-bottom: 8px;
+    margin: 2px;
     padding: 8px 12px;
     font-size: 1rem;
     border: none;
