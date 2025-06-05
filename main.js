@@ -33,6 +33,12 @@ let lutImage = null;
 let lutLocation = null;
 let glProgram = null;
 let u_enableLUT = null;
+let u_enableChromaKey = null;
+let u_enableColorCorrection = null;
+let u_numChromaKeys = null;
+let u_numColorCorrections = null;
+let u_ckey_color = null, u_ckey_similarity = null, u_ckey_smoothness = null, u_ckey_spill = null;
+let u_ccor_gamma = null, u_ccor_contrast = null, u_ccor_saturation = null;
 let lutEnabled = true;
 
 // Add support for enabling/disabling LUT in the shader
@@ -114,6 +120,17 @@ async function initGL() {
     // LUT Texture
     lutLocation = gl.getUniformLocation(program, "u_lut");
     u_enableLUT = gl.getUniformLocation(program, "u_enableLUT");
+    u_enableChromaKey = gl.getUniformLocation(program, "u_enableChromaKey");
+    u_enableColorCorrection = gl.getUniformLocation(program, "u_enableColorCorrection");
+    u_numChromaKeys = gl.getUniformLocation(program, "u_numChromaKeys");
+    u_numColorCorrections = gl.getUniformLocation(program, "u_numColorCorrections");
+    u_ckey_color = gl.getUniformLocation(program, "u_ckey_color");
+    u_ckey_similarity = gl.getUniformLocation(program, "u_ckey_similarity");
+    u_ckey_smoothness = gl.getUniformLocation(program, "u_ckey_smoothness");
+    u_ckey_spill = gl.getUniformLocation(program, "u_ckey_spill");
+    u_ccor_gamma = gl.getUniformLocation(program, "u_ccor_gamma");
+    u_ccor_contrast = gl.getUniformLocation(program, "u_ccor_contrast");
+    u_ccor_saturation = gl.getUniformLocation(program, "u_ccor_saturation");
     await loadLUTTexture(currentLUT);
     gl.uniform1i(lutLocation, 1); // texture unit 1
     gl.uniform1i(u_enableLUT, 1);
@@ -131,16 +148,49 @@ async function initGL() {
     return { videoTexture };
 }
 
-async function setLUT(lutFile) {
-    if (lutFile === "none") {
+
+
+// Helper to fill arrays to length 4 with defaults
+function fillArray(arr, def, len = 4) {
+    const out = [];
+    for (let i = 0; i < len; ++i) {
+        out.push(arr[i] !== undefined ? arr[i] : def);
+    }
+    return out;
+}
+
+async function setFilter(config) {
+    gl.useProgram(glProgram);
+
+    // Chroma Key
+    const chromaKeys = config.chromaKeys || [];
+    gl.uniform1i(u_numChromaKeys, chromaKeys.length);
+    const ckey_color = fillArray(chromaKeys.map(k => k.ckey_color), [0, 0, 0]);
+    const ckey_similarity = fillArray(chromaKeys.map(k => k.ckey_similarity), 0.0);
+    const ckey_smoothness = fillArray(chromaKeys.map(k => k.ckey_smoothness), 0.0);
+    const ckey_spill = fillArray(chromaKeys.map(k => k.ckey_spill), 0.0);
+    gl.uniform3fv(u_ckey_color, ckey_color.flat());
+    gl.uniform1fv(u_ckey_similarity, ckey_similarity);
+    gl.uniform1fv(u_ckey_smoothness, ckey_smoothness);
+    gl.uniform1fv(u_ckey_spill, ckey_spill);
+
+    // Color Correction
+    const colorCorrections = config.colorCorrections || [];
+    gl.uniform1i(u_numColorCorrections, colorCorrections.length);
+    const ccor_gamma = fillArray(colorCorrections.map(c => c.gamma), 0.0);
+    const ccor_contrast = fillArray(colorCorrections.map(c => c.contrast), 0.0);
+    const ccor_saturation = fillArray(colorCorrections.map(c => c.saturation), 1.0);
+    gl.uniform1fv(u_ccor_gamma, ccor_gamma);
+    gl.uniform1fv(u_ccor_contrast, ccor_contrast);
+    gl.uniform1fv(u_ccor_saturation, ccor_saturation);
+
+    // LUT
+    if (!config.enableLUT) {
         lutEnabled = false;
-        gl.useProgram(glProgram);
         gl.uniform1i(u_enableLUT, 0);
     } else {
         lutEnabled = true;
-        const lutPath = lutFile.startsWith("LUTs/") ? lutFile : "LUTs/" + lutFile;
-        await loadLUTTexture(lutPath);
-        gl.useProgram(glProgram);
+        await loadLUTTexture(config.lut);
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, lutTexture);
         gl.uniform1i(lutLocation, 1);
@@ -223,5 +273,9 @@ filterConfigs.forEach((filter, idx) => {
     });
     filterBar.appendChild(btn);
 });
+
+// Optionally, set initial config on load
+setFilter(filterConfigs.find(f => f.id === "blue")); // Blue as default
+
 // Import filterConfigs from configs.js
 import { filterConfigs } from "./configs.js";
