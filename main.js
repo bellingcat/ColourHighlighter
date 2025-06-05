@@ -203,12 +203,25 @@ document.getElementById("startBtn").addEventListener("click", () => {
     start();
 });
 
-const lutBtns = document.querySelectorAll(".lut-btn");
-lutBtns.forEach(btn => {
-    btn.addEventListener("click", async (e) => {
-        lutBtns.forEach(b => b.classList.remove("active"));
+// Remove the hardcoded button selection logic and instead generate buttons dynamically
+const filterBar = document.querySelector("#filterButtons"); // The div containing the filter buttons
+
+// Remove all existing filter buttons (if any)
+filterBar.querySelectorAll(".lut-btn").forEach(btn => btn.remove());
+
+// Dynamically create filter buttons from filterConfigs
+filterConfigs.forEach((filter, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "lut-btn";
+    btn.setAttribute("data-filter", filter.id);
+    btn.textContent = filter.name || filter.id;
+    if (idx === 1) btn.classList.add("active"); // Blue as default
+    btn.addEventListener("click", async () => {
+        filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        const lutFile = btn.getAttribute("data-lut");
-        await setLUT(lutFile);
+        await setFilter(filter);
     });
+    filterBar.appendChild(btn);
 });
+// Import filterConfigs from configs.js
+import { filterConfigs } from "./configs.js";
