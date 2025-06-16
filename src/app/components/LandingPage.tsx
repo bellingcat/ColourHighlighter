@@ -50,7 +50,7 @@ const TopCenter = styled.div`
   }
 
   img {
-    width: 140px;
+    width: 80%;
     margin: 0 auto 20px;
     display: block;
   }
