@@ -261,7 +261,7 @@ const ControlPanelWrapper: FC<ControlPanelWrapperProps> = ({
       {/* Logo and title */}
       <div style={{ textAlign: "center" }}>
         <img
-          src={`${process.env.PUBLIC_URL}/assets/logo.svg`}
+          src={`/assets/logo.svg`}
           alt="Logo"
           style={{
             width: "100%",
@@ -305,10 +305,10 @@ const ControlPanelWrapper: FC<ControlPanelWrapperProps> = ({
       {showSettings && (
         <SettingsModal>
           <TabBar>
-            <Tab active={tab === "color"} onClick={() => setTab("color")}>
+            <Tab active={tab === "color" ? "true" : "false" } onClick={() => setTab("color")}>
               Color Correction
             </Tab>
-            <Tab active={tab === "lut"} onClick={() => setTab("lut")}>
+            <Tab active={tab === "lut" ? "true" : "false" } onClick={() => setTab("lut")}>
               Filter Settings
             </Tab>
           </TabBar>

@@ -7,7 +7,7 @@ import { fillArray } from "./utils";
 type FilterConfig = typeof filterConfigs[number];
 
 // URL to load the fragment shader from public folder
-export const SHADER_URL: string = `${process.env.PUBLIC_URL}/shader.frag`;
+export const SHADER_URL: string = `/shader.frag`;
 
 // Shared refs for WebGL state
 export const glRef = { current: null as WebGLRenderingContext | null };
@@ -256,7 +256,7 @@ export async function loadLUTTexture(
       resolve();
     };
     img.src = lutFile.startsWith("LUTs/")
-      ? `${process.env.PUBLIC_URL}/${lutFile}`
+      ? `/${lutFile}`
       : lutFile;
   });
 }

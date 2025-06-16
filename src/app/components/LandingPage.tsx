@@ -114,7 +114,7 @@ const LandingPage: FC<LandingPageProps> = ({ children }) => (
   <WelcomeWrapper>
     <TopCenter>
       <img
-        src={`${process.env.PUBLIC_URL}/assets/logo_dark.svg`}
+        src={`/assets/logo_dark.svg`}
         alt="Logo"
       />
       <h1>Colour Highlighter</h1>
