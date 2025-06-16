@@ -4,6 +4,8 @@ import React, { FC, useState, Fragment } from "react";
 import styled, { css } from "styled-components";
 import { filterConfigs, FilterConfig } from "../configs";
 import { setGLFilter } from "../webgl";
+import Image from 'next/image';
+
 
 /**
  * Positions itself on the left or right of the viewport.
@@ -260,7 +262,7 @@ const ControlPanelWrapper: FC<ControlPanelWrapperProps> = ({
 
       {/* Logo and title */}
       <div style={{ textAlign: "center" }}>
-        <img
+        <Image
           src={`/assets/logo.svg`}
           alt="Logo"
           style={{
@@ -305,12 +307,12 @@ const ControlPanelWrapper: FC<ControlPanelWrapperProps> = ({
       {showSettings && (
         <SettingsModal>
           <TabBar>
-            <Tab active={tab === "color" ? "true" : "false" } onClick={() => setTab("color")}>
-              Color Correction
-            </Tab>
-            <Tab active={tab === "lut" ? "true" : "false" } onClick={() => setTab("lut")}>
-              Filter Settings
-            </Tab>
+           <Tab active={tab === "color"} onClick={() => setTab("color")}>
+  Color Correction
+</Tab>
+<Tab active={tab === "lut"} onClick={() => setTab("lut")}>
+  Filter Settings
+</Tab>
           </TabBar>
 
           {/* Color correction sliders */}

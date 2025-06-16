@@ -30,7 +30,7 @@ interface CaptureParams {
  */
 export const handleStartCapture = async ({
   videoRef,
-  canvasRef,
+  // canvasRef,
   setShowWelcome,
   setShowPanel,
 }: CaptureParams): Promise<void> => {

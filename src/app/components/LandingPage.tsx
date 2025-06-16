@@ -1,5 +1,6 @@
 // src/components/LandingPage.tsx
 
+import Image from "next/image";
 import React, { FC, ReactNode } from "react";
 import styled from "styled-components";
 
@@ -113,7 +114,7 @@ interface LandingPageProps {
 const LandingPage: FC<LandingPageProps> = ({ children }) => (
   <WelcomeWrapper>
     <TopCenter>
-      <img
+      <Image
         src={`/assets/logo_dark.svg`}
         alt="Logo"
       />

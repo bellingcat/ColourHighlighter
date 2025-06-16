@@ -22,7 +22,7 @@ export function fillArray<T>(arr: Array<T | undefined>, def: T, len = 4): T[] {
  * @param ms - Delay in milliseconds before `fn` is invoked.
  * @returns Wrapped function that delays calls to `fn`.
  */
-export function debounce<Args extends any[]>(fn: (...args: Args) => void, ms: number) {
+export function debounce<Args extends unknown[]>(fn: (...args: Args) => void, ms: number) {
   let timer: ReturnType<typeof setTimeout>;
   return (...args: Args) => {
     clearTimeout(timer);
