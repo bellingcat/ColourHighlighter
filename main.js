@@ -572,3 +572,98 @@ filterBar.addEventListener("click", (e) => {
         applyCustomColorBtn.classList.remove("active");
     }
 });
+
+// Draggable control panel functionality
+let isDragging = false;
+let dragOffset = { x: 0, y: 0 };
+
+const controlPane = document.getElementById('control-pane');
+
+// Mouse down event - start dragging
+controlPane.addEventListener('mousedown', (e) => {
+    // Only start drag if clicking on the drag handle area (top 40px) or empty areas
+    const rect = controlPane.getBoundingClientRect();
+    const isInDragArea = e.clientY - rect.top < 40;
+    const isEmptyArea = !e.target.closest('button, input, div[style*="margin-bottom"]');
+
+    if (isInDragArea || isEmptyArea) {
+        isDragging = true;
+        controlPane.classList.add('dragging');
+
+        // Calculate offset from mouse to top-left corner of panel
+        dragOffset.x = e.clientX - rect.left;
+        dragOffset.y = e.clientY - rect.top;
+
+        e.preventDefault(); // Prevent text selection
+    }
+});
+
+// Mouse move event - perform dragging
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    const newX = e.clientX - dragOffset.x;
+    const newY = e.clientY - dragOffset.y;
+
+    // Keep panel within viewport bounds
+    const maxX = window.innerWidth - controlPane.offsetWidth;
+    const maxY = window.innerHeight - controlPane.offsetHeight;
+
+    const constrainedX = Math.max(0, Math.min(maxX, newX));
+    const constrainedY = Math.max(0, Math.min(maxY, newY));
+
+    controlPane.style.left = constrainedX + 'px';
+    controlPane.style.top = constrainedY + 'px';
+});
+
+// Mouse up event - stop dragging
+document.addEventListener('mouseup', () => {
+    if (isDragging) {
+        isDragging = false;
+        controlPane.classList.remove('dragging');
+    }
+});
+
+// Touch events for mobile support
+controlPane.addEventListener('touchstart', (e) => {
+    const rect = controlPane.getBoundingClientRect();
+    const touch = e.touches[0];
+    const isInDragArea = touch.clientY - rect.top < 40;
+    const isEmptyArea = !e.target.closest('button, input, div[style*="margin-bottom"]');
+
+    if (isInDragArea || isEmptyArea) {
+        isDragging = true;
+        controlPane.classList.add('dragging');
+
+        dragOffset.x = touch.clientX - rect.left;
+        dragOffset.y = touch.clientY - rect.top;
+
+        e.preventDefault();
+    }
+});
+
+document.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+
+    const touch = e.touches[0];
+    const newX = touch.clientX - dragOffset.x;
+    const newY = touch.clientY - dragOffset.y;
+
+    const maxX = window.innerWidth - controlPane.offsetWidth;
+    const maxY = window.innerHeight - controlPane.offsetHeight;
+
+    const constrainedX = Math.max(0, Math.min(maxX, newX));
+    const constrainedY = Math.max(0, Math.min(maxY, newY));
+
+    controlPane.style.left = constrainedX + 'px';
+    controlPane.style.top = constrainedY + 'px';
+
+    e.preventDefault();
+});
+
+document.addEventListener('touchend', () => {
+    if (isDragging) {
+        isDragging = false;
+        controlPane.classList.remove('dragging');
+    }
+});
