@@ -279,3 +279,296 @@ setFilter(filterConfigs.find(f => f.id === "blue")); // Blue as default
 
 // Import filterConfigs from configs.js
 import { filterConfigs } from "./configs.js";
+
+// Custom Color Picker Functionality
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? [
+        parseInt(result[1], 16) / 255,
+        parseInt(result[2], 16) / 255,
+        parseInt(result[3], 16) / 255
+    ] : null;
+}
+
+function rgbToHex(r, g, b) {
+    const toHex = (n) => {
+        const hex = Math.round(n * 255).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function createCustomColorFilter(hexColor) {
+    const rgbColor = hexToRgb(hexColor);
+    if (!rgbColor) return null;
+
+    return {
+        id: "custom",
+        name: "Custom",
+        lut: null,
+        enableLUT: false,
+        enableGreyscale: false,
+        chromaKeys: [
+            {
+                ckey_color: rgbColor,
+                ckey_similarity: 0.1, // Fixed sensitivity value
+                ckey_smoothness: 10.0,
+                ckey_spill: 50.0
+            }
+        ],
+        colorCorrections: [
+            {
+                gamma: 0.0,
+                contrast: 0.3,
+                saturation: 2.0
+            }
+        ]
+    };
+}
+
+// Get UI elements
+const colorPicker = document.getElementById("colorPicker");
+const hexInput = document.getElementById("hexInput");
+const applyCustomColorBtn = document.getElementById("applyCustomColor");
+const eyedropperBtn = document.getElementById("eyedropperBtn");
+const magnifier = document.getElementById("magnifier");
+const magnifierCanvas = document.getElementById("magnifierCanvas");
+const magnifierCtx = magnifierCanvas.getContext("2d");
+
+// Eyedropper state
+let eyedropperMode = false;
+
+// Magnifier settings
+const MAGNIFIER_SIZE = 12; // 12x12 pixel sample area
+const MAGNIFIER_ZOOM = 10; // 10x zoom level
+const MAGNIFIER_CANVAS_SIZE = 120; // Canvas size in pixels
+
+// Function to update magnifier position and content
+function updateMagnifier(mouseX, mouseY) {
+    if (!eyedropperMode) return;
+
+    // Position magnifier near cursor but not covering it
+    const offsetX = 30;
+    const offsetY = -150;
+    let magnifierX = mouseX + offsetX;
+    let magnifierY = mouseY + offsetY;
+
+    // Keep magnifier on screen
+    const rect = document.body.getBoundingClientRect();
+    if (magnifierX + 120 > window.innerWidth) magnifierX = mouseX - 120 - offsetX;
+    if (magnifierY < 0) magnifierY = mouseY + offsetX;
+
+    magnifier.style.left = magnifierX + 'px';
+    magnifier.style.top = magnifierY + 'px';
+
+    // Sample pixels from WebGL canvas after next render
+    requestAnimationFrame(() => {
+        try {
+            // Make sure we're using the correct WebGL context
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+            // Sample pixels from WebGL canvas
+            const rect2 = canvas.getBoundingClientRect();
+            const canvasX = mouseX - rect2.left;
+            const canvasY = mouseY - rect2.top;
+
+            // Convert to WebGL coordinates
+            const glX = Math.floor(canvasX * canvas.width / rect2.width);
+            const glY = Math.floor((rect2.height - canvasY) * canvas.height / rect2.height);
+
+            // Sample area around cursor
+            const halfSize = Math.floor(MAGNIFIER_SIZE / 2);
+            const sampleX = Math.max(0, Math.min(canvas.width - MAGNIFIER_SIZE, glX - halfSize));
+            const sampleY = Math.max(0, Math.min(canvas.height - MAGNIFIER_SIZE, glY - halfSize));
+
+            // Read pixel data from WebGL
+            const pixels = new Uint8Array(MAGNIFIER_SIZE * MAGNIFIER_SIZE * 4);
+            gl.readPixels(sampleX, sampleY, MAGNIFIER_SIZE, MAGNIFIER_SIZE, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+            // Debug: Log some pixel values
+            console.log('Magnifier pixels sample:', pixels.slice(0, 12));
+
+            // Create ImageData and draw magnified version
+            const imageData = new ImageData(MAGNIFIER_SIZE, MAGNIFIER_SIZE);
+            imageData.data.set(pixels);
+
+            // Clear magnifier canvas
+            magnifierCtx.clearRect(0, 0, MAGNIFIER_CANVAS_SIZE, MAGNIFIER_CANVAS_SIZE);
+
+            // Disable smoothing for pixelated effect
+            magnifierCtx.imageSmoothingEnabled = false;
+
+            // Create temporary canvas for the sample
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = MAGNIFIER_SIZE;
+            tempCanvas.height = MAGNIFIER_SIZE;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(imageData, 0, 0);
+
+            // Draw magnified version (flipped vertically to correct WebGL coordinate system)
+            magnifierCtx.save();
+            magnifierCtx.scale(1, -1);
+            magnifierCtx.drawImage(tempCanvas, 0, -MAGNIFIER_CANVAS_SIZE, MAGNIFIER_CANVAS_SIZE, MAGNIFIER_CANVAS_SIZE);
+            magnifierCtx.restore();
+
+        } catch (error) {
+            console.warn("Could not update magnifier:", error);
+        }
+    });
+}
+
+// Function to sample color from canvas at coordinates
+function sampleColorFromCanvas(x, y) {
+    return new Promise((resolve) => {
+        // Convert screen coordinates to WebGL coordinates
+        const rect = canvas.getBoundingClientRect();
+        const canvasX = x - rect.left;
+        const canvasY = y - rect.top;
+
+        // Convert to WebGL pixel coordinates (flip Y axis)
+        const glX = Math.floor(canvasX * canvas.width / rect.width);
+        const glY = Math.floor((rect.height - canvasY) * canvas.height / rect.height);
+
+        // Ensure we read pixels after the next render frame
+        requestAnimationFrame(() => {
+            try {
+                // Make sure we're using the correct WebGL context
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+                // Read pixel data from WebGL context
+                const pixels = new Uint8Array(4);
+                gl.readPixels(glX, glY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+                // Debug logging
+                console.log('Sampled pixel:', pixels[0], pixels[1], pixels[2], pixels[3]);
+
+                // Convert to hex
+                const hex = rgbToHex(pixels[0] / 255, pixels[1] / 255, pixels[2] / 255);
+                resolve(hex);
+            } catch (error) {
+                console.error('Error reading pixels:', error);
+                resolve('#000000');
+            }
+        });
+    });
+}
+
+// Toggle eyedropper mode
+eyedropperBtn.addEventListener("click", () => {
+    eyedropperMode = !eyedropperMode;
+
+    if (eyedropperMode) {
+        eyedropperBtn.classList.add("active");
+        canvas.classList.add("eyedropper-mode");
+        eyedropperBtn.innerHTML = '<span>🎯</span> Click to Sample';
+    } else {
+        eyedropperBtn.classList.remove("active");
+        canvas.classList.remove("eyedropper-mode");
+        magnifier.style.display = 'none';
+        eyedropperBtn.innerHTML = '<span>🎯</span> Pick from Canvas';
+    }
+});
+
+// Canvas click handler for color sampling
+canvas.addEventListener("click", async (event) => {
+    if (!eyedropperMode) return;
+
+    try {
+        const sampledColor = await sampleColorFromCanvas(event.clientX, event.clientY);
+
+        console.log('Sampled color:', sampledColor);
+
+        // Update color picker and hex input
+        colorPicker.value = sampledColor;
+        hexInput.value = sampledColor;
+
+        // Auto-apply the sampled color
+        const customFilter = createCustomColorFilter(sampledColor);
+
+        if (customFilter) {
+            // Remove active state from preset buttons
+            filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
+
+            // Add active state to custom color button
+            applyCustomColorBtn.classList.add("active");
+
+            setFilter(customFilter);
+        }
+
+        // Turn off eyedropper mode after sampling
+        eyedropperMode = false;
+        eyedropperBtn.classList.remove("active");
+        canvas.classList.remove("eyedropper-mode");
+        magnifier.style.display = 'none';
+        eyedropperBtn.innerHTML = '<span>🎯</span> Pick from Canvas';
+
+    } catch (error) {
+        console.warn("Could not sample color:", error);
+    }
+});
+
+// Canvas mouse movement for magnifier
+canvas.addEventListener("mousemove", (event) => {
+    if (!eyedropperMode) return;
+
+    magnifier.style.display = 'block';
+    updateMagnifier(event.clientX, event.clientY);
+});
+
+// Hide magnifier when mouse leaves canvas
+canvas.addEventListener("mouseleave", () => {
+    magnifier.style.display = 'none';
+});
+
+
+
+// Color picker change event
+colorPicker.addEventListener("change", () => {
+    hexInput.value = colorPicker.value;
+});
+
+// Hex input change event
+hexInput.addEventListener("input", () => {
+    const hex = hexInput.value;
+    if (/^#[0-9A-F]{6}$/i.test(hex)) {
+        colorPicker.value = hex;
+    }
+});
+
+// Validate and format hex input on blur
+hexInput.addEventListener("blur", () => {
+    let hex = hexInput.value.trim();
+    if (!hex.startsWith("#")) {
+        hex = "#" + hex;
+    }
+    if (/^#[0-9A-F]{6}$/i.test(hex)) {
+        hexInput.value = hex.toUpperCase();
+        colorPicker.value = hex;
+    } else {
+        // Reset to color picker value if invalid
+        hexInput.value = colorPicker.value;
+    }
+});
+
+// Apply custom color filter
+applyCustomColorBtn.addEventListener("click", async () => {
+    const hexColor = colorPicker.value;
+
+    const customFilter = createCustomColorFilter(hexColor);
+    if (customFilter) {
+        // Remove active state from preset buttons
+        filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
+
+        // Add active state to custom color button
+        applyCustomColorBtn.classList.add("active");
+
+        await setFilter(customFilter);
+    }
+});
+
+// Remove active state from custom color button when preset is selected
+filterBar.addEventListener("click", (e) => {
+    if (e.target.classList.contains("lut-btn")) {
+        applyCustomColorBtn.classList.remove("active");
+    }
+});

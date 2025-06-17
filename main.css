@@ -45,3 +45,139 @@ html {
     width: 100%;
     height: 100%;
 }
+
+/* Custom Color Picker Styles */
+#customColorSection {
+    border-top: 1px solid #444;
+    padding-top: 12px;
+}
+
+.color-input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+#colorPicker {
+    width: 50px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+}
+
+#hexInput {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #333;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+#hexInput:focus {
+    outline: none;
+    border-color: rgb(251, 180, 0);
+}
+
+
+
+#applyCustomColor {
+    width: 100%;
+    background: #555 !important;
+}
+
+#applyCustomColor:hover {
+    background: #666 !important;
+}
+
+#applyCustomColor.active {
+    background: rgb(251, 180, 0) !important;
+}
+
+
+
+.eyedropper-btn {
+    width: 100%;
+    margin-bottom: 12px !important;
+    background: #555 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.eyedropper-btn:hover {
+    background: #666 !important;
+}
+
+.eyedropper-btn.active {
+    background: rgb(251, 180, 0) !important;
+    color: black;
+}
+
+#glcanvas.eyedropper-mode {
+    cursor: crosshair;
+}
+
+/* Magnifier for color picking */
+.magnifier {
+    position: fixed;
+    width: 120px;
+    height: 120px;
+    border: 3px solid rgb(251, 180, 0);
+    border-radius: 60px;
+    background: #222;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+}
+
+#magnifierCanvas {
+    width: 120px;
+    height: 120px;
+    border-radius: 60px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.magnifier-crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid rgb(251, 180, 0);
+    border-radius: 50%;
+    background: rgba(251, 180, 0, 0.2);
+    pointer-events: none;
+}
+
+.magnifier-crosshair::before,
+.magnifier-crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgb(251, 180, 0);
+}
+
+.magnifier-crosshair::before {
+    top: 50%;
+    left: 2px;
+    right: 2px;
+    height: 2px;
+    margin-top: -1px;
+}
+
+.magnifier-crosshair::after {
+    left: 50%;
+    top: 2px;
+    bottom: 2px;
+    width: 2px;
+    margin-left: -1px;
+}

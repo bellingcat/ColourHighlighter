@@ -86,11 +86,16 @@ vec3 applyColorCorrection(vec3 color, float gamma, float contrast, float saturat
 void main() {
   vec4 videoColor = texture2D(u_video, v_texCoord);
   vec3 color = videoColor.rgb;
+  vec3 originalColor = color;
+  
+  // Track if this pixel matches any chroma key
+  float totalMask = 0.0;
 
-  // Apply all chroma key filters in order
+  // Apply all chroma key filters in order and accumulate mask
   for (int i = 0; i < 4; ++i) {
     if (i >= u_numChromaKeys) break;
-    float mask = getChromaMask(color, u_ckey_color[i], u_ckey_similarity[i], u_ckey_smoothness[i]);
+    float mask = getChromaMask(originalColor, u_ckey_color[i], u_ckey_similarity[i], u_ckey_smoothness[i]);
+    totalMask = max(totalMask, mask); // Use max to combine multiple chroma keys
     color = mix(color, vec3(color.r, color.g * (1.0 - u_ckey_spill[i] * 0.005), color.b), mask);
   }
 

@@ -19,8 +19,27 @@
       <div>
         <div id="filterButtons" style="margin-bottom:6px;">Select Highlighter:</div>
       </div>
+      
+      <!-- Custom Color Picker Section -->
+      <div id="customColorSection">
+        <div style="margin-bottom: 6px;">Custom Color:</div>
+        <div class="color-input-group">
+          <input type="color" id="colorPicker" value="#0066ff">
+          <input type="text" id="hexInput" value="#0066ff" placeholder="#000000">
+        </div>
+        <button id="eyedropperBtn" class="eyedropper-btn">
+          <span>🎯</span> Pick from Canvas
+        </button>
+        <button id="applyCustomColor">Apply Custom Color</button>
+      </div>
     </div>
     <canvas id="glcanvas"></canvas>
+  </div>
+  
+  <!-- Magnifier for color picking -->
+  <div id="magnifier" class="magnifier">
+    <canvas id="magnifierCanvas" width="120" height="120"></canvas>
+    <div class="magnifier-crosshair"></div>
   </div>
   <video id="video" autoplay muted playsinline style="display:none;"></video>
   <script type="module" src="main.js"></script>
