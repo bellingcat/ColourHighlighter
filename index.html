@@ -17,7 +17,10 @@
     </p>
       <button id="startBtn">Start Capture</button>
       <div>
-        <div id="filterButtons" style="margin-bottom:6px;">Select Highlighter:</div>
+        <div style="margin-bottom:6px;">Select Highlighter:</div>
+        <select id="highlighterSelect">
+          <!-- to be populated dynamically by main.js -->
+        </select>
       </div>
       
       <!-- Custom Color Picker Section -->
@@ -30,7 +33,7 @@
         <button id="eyedropperBtn" class="eyedropper-btn">
           <span>🎯</span> Pick from Canvas
         </button>
-        <button id="applyCustomColor">Apply Custom Color</button>
+        <button id="applyCustomColor">Reset</button>
       </div>
     </div>
     <canvas id="glcanvas"></canvas>

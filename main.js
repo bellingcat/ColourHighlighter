@@ -1,3 +1,6 @@
+// Import filterConfigs from configs.js
+import { filterConfigs } from "./configs.js";
+
 const canvas = document.getElementById("glcanvas");
 const gl = canvas.getContext("webgl");
 const video = document.getElementById("video");
@@ -200,7 +203,10 @@ async function setFilter(config) {
 
 // Start screen capture and render loop
 async function start() {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+    });
     video.srcObject = stream;
 
     // Ensure compatibility with Chrome/Safari
@@ -253,32 +259,34 @@ document.getElementById("startBtn").addEventListener("click", () => {
     start();
 });
 
-// Remove the hardcoded button selection logic and instead generate buttons dynamically
-const filterBar = document.querySelector("#filterButtons"); // The div containing the filter buttons
+// Populate the highlighter dropdown with options from filterConfigs
+const highlighterSelect = document.querySelector("#highlighterSelect");
 
-// Remove all existing filter buttons (if any)
-filterBar.querySelectorAll(".lut-btn").forEach(btn => btn.remove());
+// Clear existing options (if any)
+highlighterSelect.innerHTML = '';
 
-// Dynamically create filter buttons from filterConfigs
+// Dynamically create dropdown options from filterConfigs
 filterConfigs.forEach((filter, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "lut-btn";
-    btn.setAttribute("data-filter", filter.id);
-    btn.textContent = filter.name || filter.id;
-    if (idx === 1) btn.classList.add("active"); // Blue as default
-    btn.addEventListener("click", async () => {
-        filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        await setFilter(filter);
-    });
-    filterBar.appendChild(btn);
+    const option = document.createElement("option");
+    option.value = filter.id;
+    option.textContent = filter.name || filter.id;
+    if (idx === 1) option.selected = true; // Blue as default
+    highlighterSelect.appendChild(option);
 });
 
-// Optionally, set initial config on load
-setFilter(filterConfigs.find(f => f.id === "blue")); // Blue as default
+// Add event listener for dropdown changes
+highlighterSelect.addEventListener("change", async (event) => {
+    const selectedFilterId = event.target.value;
+    const selectedFilter = filterConfigs.find(f => f.id === selectedFilterId);
+    if (selectedFilter) {
+        // Remove active state from reset button when preset is selected
+        resetBtn.classList.remove("active");
+        await setFilter(selectedFilter);
+    }
+});
 
-// Import filterConfigs from configs.js
-import { filterConfigs } from "./configs.js";
+// Set initial config on load
+setFilter(filterConfigs.find(f => f.id === "blue")); // Blue as default
 
 // Custom Color Picker Functionality
 function hexToRgb(hex) {
@@ -329,7 +337,7 @@ function createCustomColorFilter(hexColor) {
 // Get UI elements
 const colorPicker = document.getElementById("colorPicker");
 const hexInput = document.getElementById("hexInput");
-const applyCustomColorBtn = document.getElementById("applyCustomColor");
+const resetBtn = document.getElementById("applyCustomColor");
 const eyedropperBtn = document.getElementById("eyedropperBtn");
 const magnifier = document.getElementById("magnifier");
 const magnifierCanvas = document.getElementById("magnifierCanvas");
@@ -486,11 +494,11 @@ canvas.addEventListener("click", async (event) => {
         const customFilter = createCustomColorFilter(sampledColor);
 
         if (customFilter) {
-            // Remove active state from preset buttons
-            filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
+            // Reset dropdown to show custom selection (no specific preset selected)
+            // Note: We don't change the dropdown value here to maintain user's last selection
 
-            // Add active state to custom color button
-            applyCustomColorBtn.classList.add("active");
+            // Add active state to reset button
+            resetBtn.classList.add("active");
 
             setFilter(customFilter);
         }
@@ -550,28 +558,22 @@ hexInput.addEventListener("blur", () => {
     }
 });
 
-// Apply custom color filter
-applyCustomColorBtn.addEventListener("click", async () => {
-    const hexColor = colorPicker.value;
+// Reset to original filter
+resetBtn.addEventListener("click", async () => {
+    // Reset to default blue filter
+    const defaultFilter = filterConfigs.find(f => f.id === "blue");
+    if (defaultFilter) {
+        // Reset dropdown to blue selection
+        highlighterSelect.value = "blue";
 
-    const customFilter = createCustomColorFilter(hexColor);
-    if (customFilter) {
-        // Remove active state from preset buttons
-        filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
+        // Remove active state from reset button
+        resetBtn.classList.remove("active");
 
-        // Add active state to custom color button
-        applyCustomColorBtn.classList.add("active");
-
-        await setFilter(customFilter);
+        await setFilter(defaultFilter);
     }
 });
 
-// Remove active state from custom color button when preset is selected
-filterBar.addEventListener("click", (e) => {
-    if (e.target.classList.contains("lut-btn")) {
-        applyCustomColorBtn.classList.remove("active");
-    }
-});
+// Note: Custom color button active state is already handled in the dropdown change event above
 
 // Draggable control panel functionality
 let isDragging = false;
@@ -584,7 +586,7 @@ controlPane.addEventListener('mousedown', (e) => {
     // Only start drag if clicking on the drag handle area (top 40px) or empty areas
     const rect = controlPane.getBoundingClientRect();
     const isInDragArea = e.clientY - rect.top < 40;
-    const isEmptyArea = !e.target.closest('button, input, div[style*="margin-bottom"]');
+    const isEmptyArea = !e.target.closest('button, input, select, div[style*="margin-bottom"]');
 
     if (isInDragArea || isEmptyArea) {
         isDragging = true;
@@ -629,7 +631,7 @@ controlPane.addEventListener('touchstart', (e) => {
     const rect = controlPane.getBoundingClientRect();
     const touch = e.touches[0];
     const isInDragArea = touch.clientY - rect.top < 40;
-    const isEmptyArea = !e.target.closest('button, input, div[style*="margin-bottom"]');
+    const isEmptyArea = !e.target.closest('button, input, select, div[style*="margin-bottom"]');
 
     if (isInDragArea || isEmptyArea) {
         isDragging = true;

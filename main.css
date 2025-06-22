@@ -30,6 +30,22 @@ html {
     user-select: none;
 }
 
+/* allows interaction with form elements inside the control pane */
+#control-pane select,
+#control-pane input,
+#control-pane button {
+    user-select: auto;
+    cursor: auto;
+}
+
+#control-pane select {
+    cursor: pointer;
+}
+
+#control-pane button {
+    cursor: pointer;
+}
+
 #control-pane.dragging {
     opacity: 0.9;
     cursor: grabbing;
@@ -109,22 +125,21 @@ html {
     border-color: rgb(251, 180, 0);
 }
 
-
-
 #applyCustomColor {
     width: 100%;
-    background: #555 !important;
+    background: #5d4646 !important;
+    border: 1px solid #7a5555;
 }
 
 #applyCustomColor:hover {
-    background: #666 !important;
+    background: #6b5555 !important;
+    border-color: #8b6666;
 }
 
 #applyCustomColor.active {
     background: rgb(251, 180, 0) !important;
+    border-color: rgb(251, 180, 0);
 }
-
-
 
 .eyedropper-btn {
     width: 100%;
@@ -207,4 +222,99 @@ html {
     bottom: 2px;
     width: 2px;
     margin-left: -1px;
+}
+
+/* Highlighter Dropdown Styles */
+#highlighterSelect {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 1rem;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #333;
+    color: #fff;
+    cursor: pointer;
+    /* Remove appearance: none to restore native dropdown functionality */
+    -webkit-appearance: menulist;
+    -moz-appearance: menulist;
+    appearance: menulist;
+    /* Ensure the select is clickable */
+    pointer-events: all;
+    position: relative;
+    z-index: 10;
+}
+
+#highlighterSelect:focus {
+    outline: none;
+    border-color: rgb(251, 180, 0);
+    background-color: #444;
+}
+
+#highlighterSelect:hover {
+    background-color: #444;
+}
+
+#highlighterSelect option {
+    background: #333;
+    color: #fff;
+    padding: 8px;
+}
+
+/* Start Capture Button - Primary Action Button */
+#startBtn {
+    background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+    color: white !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    padding: 12px 20px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 20px !important;
+}
+
+#startBtn::before {
+    content: "▶";
+    margin-right: 8px;
+    font-size: 0.9rem;
+}
+
+#startBtn:hover {
+    background: linear-gradient(135deg, #5CBF60, #4CAF50) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4) !important;
+}
+
+#startBtn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3) !important;
+}
+
+#startBtn:focus {
+    outline: none !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3), 0 0 0 3px rgba(76, 175, 80, 0.2) !important;
+}
+
+/* Ripple effect for the start button */
+#startBtn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+#startBtn:active::after {
+    width: 120%;
+    height: 120%;
 }
