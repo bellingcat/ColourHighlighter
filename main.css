@@ -65,20 +65,38 @@ html {
 }
 #control-pane button {
     margin: 2px;
-    padding: 8px 12px;
+    padding: 12px 16px;
     font-size: 1rem;
+    font-weight: 500;
     border: none;
-    border-radius: 4px;
-    background: #444;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #555, #444);
     color: #fff;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
 }
 #control-pane button.active,
 #control-pane button:focus {
-    background: rgb(251, 180, 0);
-    color: black;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
     outline: none;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4), 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+#control-pane button:hover {
+    background: linear-gradient(135deg, #666, #555);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+#control-pane button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 #glcanvas {
     display: block;
@@ -103,61 +121,122 @@ html {
 
 #colorPicker {
     width: 50px;
-    height: 40px;
+    height: 48px;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     background: transparent;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#colorPicker:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 #hexInput {
     flex: 1;
-    padding: 8px;
-    border: 1px solid #444;
-    border-radius: 4px;
-    background: #333;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #444, #333);
     color: #fff;
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.3px;
 }
 
 #hexInput:focus {
     outline: none;
-    border-color: rgb(251, 180, 0);
+    background: linear-gradient(135deg, #555, #444);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(251, 180, 0, 0.3);
+    transform: translateY(-1px);
 }
 
 #applyCustomColor {
     width: 100%;
-    background: #5d4646 !important;
-    border: 1px solid #7a5555;
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: white !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    padding: 12px 16px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
 }
 
 #applyCustomColor:hover {
-    background: #6b5555 !important;
-    border-color: #8b6666;
+    background: linear-gradient(135deg, #f87171, #ef4444) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+#applyCustomColor:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3) !important;
+}
+
+#applyCustomColor:focus {
+    outline: none !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3), 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
 }
 
 #applyCustomColor.active {
-    background: rgb(251, 180, 0) !important;
-    border-color: rgb(251, 180, 0);
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4) !important;
 }
 
 .eyedropper-btn {
     width: 100%;
     margin-bottom: 12px !important;
-    background: #555 !important;
+    background: linear-gradient(135deg, #6366f1, #5855d6) !important;
+    color: white !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    padding: 12px 16px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
 }
 
 .eyedropper-btn:hover {
-    background: #666 !important;
+    background: linear-gradient(135deg, #7c7cf7, #6366f1) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+}
+
+.eyedropper-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3) !important;
+}
+
+.eyedropper-btn:focus {
+    outline: none !important;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3), 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
 }
 
 .eyedropper-btn.active {
-    background: rgb(251, 180, 0) !important;
-    color: black;
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4) !important;
 }
 
 #glcanvas.eyedropper-mode {
@@ -227,13 +306,18 @@ html {
 /* Highlighter Dropdown Styles */
 #highlighterSelect {
     width: 100%;
-    padding: 8px 12px;
+    padding: 12px 16px;
     font-size: 1rem;
-    border: 1px solid #444;
-    border-radius: 4px;
-    background: #333;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #555, #444);
     color: #fff;
     cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
     /* Remove appearance: none to restore native dropdown functionality */
     -webkit-appearance: menulist;
     -moz-appearance: menulist;
@@ -246,12 +330,16 @@ html {
 
 #highlighterSelect:focus {
     outline: none;
-    border-color: rgb(251, 180, 0);
-    background-color: #444;
+    border: none;
+    background: linear-gradient(135deg, #666, #555);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(251, 180, 0, 0.3);
+    transform: translateY(-1px);
 }
 
 #highlighterSelect:hover {
-    background-color: #444;
+    background: linear-gradient(135deg, #666, #555);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 #highlighterSelect option {
@@ -276,6 +364,7 @@ html {
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
     margin-bottom: 20px !important;
+    width: 100%;
 }
 
 #startBtn::before {
