@@ -115,19 +115,56 @@ html {
 
 .color-input-group {
     display: flex;
+    align-items: center;
     gap: 8px;
     margin-bottom: 12px;
+    width: 100%;
 }
 
 #colorPicker {
-    width: 50px;
-    height: 48px;
-    border: none;
-    border-radius: 8px;
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+    border: none !important;
+    border-radius: 50% !important;
     cursor: pointer;
     background: transparent;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+/* WebKit browsers (Chrome, Safari) */
+#colorPicker::-webkit-color-swatch-wrapper {
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+#colorPicker::-webkit-color-swatch {
+    border: none !important;
+    border-radius: 50% !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Firefox */
+#colorPicker::-moz-color-swatch {
+    border: none !important;
+    border-radius: 50% !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 #colorPicker:hover {
@@ -136,7 +173,9 @@ html {
 }
 
 #hexInput {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
     padding: 12px;
     border: none;
     border-radius: 8px;
