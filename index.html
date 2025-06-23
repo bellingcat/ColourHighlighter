@@ -8,32 +8,42 @@
 <body>
   <div id="container">
     <div id="control-pane">
+      <button id="collapseBtn" class="collapse-btn">☰</button>
       <div style="text-align:center;">
         <img src="assets/logo.svg" alt="Logo" style="width: 100%; max-width: 160px; margin-bottom: 18px; display: block; margin-left: auto; margin-right: auto;">
         <h3>Colour Highlighter</h1>
     </div>
-    <p>
-        Click 'Start Capture' below and select the window or screen you want to highlight.
-    </p>
-      <button id="startBtn">Start Capture</button>
-      <div>
-        <div style="margin-bottom:6px;">Select Highlighter:</div>
-        <select id="highlighterSelect">
-          <!-- to be populated dynamically by main.js -->
-        </select>
+      
+      <!-- Start Capture Section -->
+      <div class="start-capture-section">
+        <button id="startBtn">Start Capture</button>
+        <p>
+          Click 'Start Capture' above and select the window or screen you want to highlight.
+        </p>
       </div>
       
-      <!-- Custom Color Picker Section -->
-      <div id="customColorSection">
-        <div style="margin-bottom: 6px;">Custom Color:</div>
-        <div class="color-input-group">
-          <input type="color" id="colorPicker" value="#0066ff">
-          <input type="text" id="hexInput" value="#0066ff" placeholder="#000000">
+      <!-- Highlighter Options Section -->
+      <div class="highlighter-options">
+        <button id="stopBtn">Stop Capture</button>
+        <div>
+          <div style="margin-bottom:6px;">Select Highlighter:</div>
+          <select id="highlighterSelect">
+            <!-- to be populated dynamically by main.js -->
+          </select>
         </div>
-        <button id="eyedropperBtn" class="eyedropper-btn">
-          <span>🎯</span> Pick from Canvas
-        </button>
-        <button id="applyCustomColor">Reset</button>
+        
+        <!-- Custom Color Picker Section -->
+        <div id="customColorSection">
+          <div style="margin-bottom: 6px;">Custom Color:</div>
+          <div class="color-input-group">
+            <input type="color" id="colorPicker" value="#0066ff">
+            <input type="text" id="hexInput" value="#0066ff" placeholder="#000000">
+          </div>
+          <button id="eyedropperBtn" class="eyedropper-btn">
+            <span>🎯</span> Pick from Canvas
+          </button>
+          <button id="applyCustomColor">Reset</button>
+        </div>
       </div>
     </div>
     <canvas id="glcanvas"></canvas>

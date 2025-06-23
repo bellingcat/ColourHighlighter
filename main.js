@@ -43,6 +43,7 @@ let u_numColorCorrections = null;
 let u_ckey_color = null, u_ckey_similarity = null, u_ckey_smoothness = null, u_ckey_spill = null;
 let u_ccor_gamma = null, u_ccor_contrast = null, u_ccor_saturation = null;
 let lutEnabled = true;
+let pendingFilterConfig = null; // Store config to apply when WebGL is ready
 
 // Add support for enabling/disabling LUT in the shader
 async function loadLUTTexture(lutFile) {
@@ -134,9 +135,18 @@ async function initGL() {
     u_ccor_gamma = gl.getUniformLocation(program, "u_ccor_gamma");
     u_ccor_contrast = gl.getUniformLocation(program, "u_ccor_contrast");
     u_ccor_saturation = gl.getUniformLocation(program, "u_ccor_saturation");
-    await loadLUTTexture(currentLUT);
-    gl.uniform1i(lutLocation, 1); // texture unit 1
-    gl.uniform1i(u_enableLUT, 1);
+
+    // Apply pending filter config if it exists, otherwise use original filter
+    if (pendingFilterConfig) {
+        await setFilter(pendingFilterConfig);
+        pendingFilterConfig = null;
+    } else {
+        // Fallback to original filter
+        const originalFilter = filterConfigs.find(f => f.id === "original");
+        if (originalFilter) {
+            await setFilter(originalFilter);
+        }
+    }
 
     // Video Texture
     const videoTexture = gl.createTexture();
@@ -201,12 +211,45 @@ async function setFilter(config) {
     }
 }
 
+// UI State Management
+let currentStream = null;
+
+function showHighlighterOptions() {
+    document.querySelector('.start-capture-section').classList.add('hide');
+    document.querySelector('.highlighter-options').classList.add('show');
+}
+
+function showStartCaptureSection() {
+    document.querySelector('.start-capture-section').classList.remove('hide');
+    document.querySelector('.highlighter-options').classList.remove('show');
+}
+
+function stopScreenCapture() {
+    if (currentStream) {
+        // Stop all tracks in the stream
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+
+        // Hide canvas
+        canvas.style.display = "none";
+
+        // Reset UI to initial state
+        showStartCaptureSection();
+
+        // Clear video source
+        video.srcObject = null;
+    }
+}
+
 // Start screen capture and render loop
 async function start() {
     const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: false,
     });
+
+    // Store stream reference for stopping
+    currentStream = stream;
     video.srcObject = stream;
 
     // Ensure compatibility with Chrome/Safari
@@ -217,9 +260,14 @@ async function start() {
     // Show canvas when sharing starts
     canvas.style.display = "";
 
-    // Hide canvas when sharing stops
+    // Switch UI to show highlighter options
+    showHighlighterOptions();
+
+    // Hide canvas and restore UI when sharing stops naturally
     stream.getVideoTracks()[0].addEventListener("ended", () => {
         canvas.style.display = "none";
+        showStartCaptureSection();
+        currentStream = null;
     });
 
     const { videoTexture } = await initGL();
@@ -259,6 +307,10 @@ document.getElementById("startBtn").addEventListener("click", () => {
     start();
 });
 
+document.getElementById("stopBtn").addEventListener("click", () => {
+    stopScreenCapture();
+});
+
 // Populate the highlighter dropdown with options from filterConfigs
 const highlighterSelect = document.querySelector("#highlighterSelect");
 
@@ -270,7 +322,7 @@ filterConfigs.forEach((filter, idx) => {
     const option = document.createElement("option");
     option.value = filter.id;
     option.textContent = filter.name || filter.id;
-    if (idx === 1) option.selected = true; // Blue as default
+    if (idx === 0) option.selected = true; // Original as default
     highlighterSelect.appendChild(option);
 });
 
@@ -286,7 +338,7 @@ highlighterSelect.addEventListener("change", async (event) => {
 });
 
 // Set initial config on load
-setFilter(filterConfigs.find(f => f.id === "blue")); // Blue as default
+setFilter(filterConfigs.find(f => f.id === "original")); // Original as default
 
 // Custom Color Picker Functionality
 function hexToRgb(hex) {
@@ -560,16 +612,16 @@ hexInput.addEventListener("blur", () => {
 
 // Reset to original filter
 resetBtn.addEventListener("click", async () => {
-    // Reset to default blue filter
-    const defaultFilter = filterConfigs.find(f => f.id === "blue");
-    if (defaultFilter) {
-        // Reset dropdown to blue selection
-        highlighterSelect.value = "blue";
+    // Reset to original filter (no filter)
+    const originalFilter = filterConfigs.find(f => f.id === "original");
+    if (originalFilter) {
+        // Reset dropdown to original selection
+        highlighterSelect.value = "original";
 
         // Remove active state from reset button
         resetBtn.classList.remove("active");
 
-        await setFilter(defaultFilter);
+        await setFilter(originalFilter);
     }
 });
 
@@ -578,18 +630,115 @@ resetBtn.addEventListener("click", async () => {
 // Draggable control panel functionality
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
+let hasDragged = false;
+let currentPosition = { x: 20, y: 20 }; // Track actual position
 
 const controlPane = document.getElementById('control-pane');
 
-// Mouse down event - start dragging
+// Control panel state persistence
+const CONTROL_PANEL_STORAGE_KEY = 'controlPanelState';
+
+function saveControlPanelState() {
+    const state = {
+        position: currentPosition,
+        collapsed: controlPane.classList.contains('collapsed')
+    };
+    localStorage.setItem(CONTROL_PANEL_STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadControlPanelState() {
+    try {
+        const savedState = localStorage.getItem(CONTROL_PANEL_STORAGE_KEY);
+        if (savedState) {
+            const state = JSON.parse(savedState);
+
+            // Restore position
+            if (state.position && typeof state.position.x === 'number' && typeof state.position.y === 'number') {
+                // Ensure position is within current viewport bounds
+                const maxX = window.innerWidth - controlPane.offsetWidth;
+                const maxY = window.innerHeight - controlPane.offsetHeight;
+
+                currentPosition.x = Math.max(0, Math.min(maxX, state.position.x));
+                currentPosition.y = Math.max(0, Math.min(maxY, state.position.y));
+
+                controlPane.style.left = currentPosition.x + 'px';
+                controlPane.style.top = currentPosition.y + 'px';
+            }
+
+            // Restore collapsed state
+            if (state.collapsed === true) {
+                controlPane.classList.add('collapsed');
+            } else {
+                controlPane.classList.remove('collapsed');
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load control panel state:', error);
+        // Use default position and state if loading fails
+    }
+}
+
+// Load saved state when page loads
+loadControlPanelState();
+
+// Adjust position on window resize to keep panel in bounds
+window.addEventListener('resize', () => {
+    const maxX = window.innerWidth - controlPane.offsetWidth;
+    const maxY = window.innerHeight - controlPane.offsetHeight;
+
+    // Adjust position if needed
+    const newX = Math.max(0, Math.min(maxX, currentPosition.x));
+    const newY = Math.max(0, Math.min(maxY, currentPosition.y));
+
+    if (newX !== currentPosition.x || newY !== currentPosition.y) {
+        currentPosition.x = newX;
+        currentPosition.y = newY;
+        controlPane.style.left = newX + 'px';
+        controlPane.style.top = newY + 'px';
+        saveControlPanelState(); // Save adjusted position
+    }
+});
+
+// Collapse button functionality
+const collapseBtn = document.getElementById('collapseBtn');
+collapseBtn.addEventListener('click', (e) => {
+    controlPane.classList.add('collapsed');
+    saveControlPanelState(); // Save state when collapsed
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+// Click on collapsed pane to expand (but not if we just finished dragging)
+controlPane.addEventListener('click', (e) => {
+    if (controlPane.classList.contains('collapsed') && !hasDragged) {
+        controlPane.classList.remove('collapsed');
+        saveControlPanelState(); // Save state when expanded
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    // Reset drag flag after a short delay to allow for genuine clicks
+    setTimeout(() => {
+        hasDragged = false;
+    }, 100);
+});
+
+// Mouse down event - start dragging immediately
 controlPane.addEventListener('mousedown', (e) => {
-    // Only start drag if clicking on the drag handle area (top 40px) or empty areas
+    // Don't start dragging if clicking on the collapse button
+    if (e.target.id === 'collapseBtn') {
+        return;
+    }
+
+    // Only start drag if clicking on the drag handle area (top 40px) or empty areas (when expanded)
+    // When collapsed, the entire area is draggable
     const rect = controlPane.getBoundingClientRect();
-    const isInDragArea = e.clientY - rect.top < 40;
-    const isEmptyArea = !e.target.closest('button, input, select, div[style*="margin-bottom"]');
+    const isCollapsed = controlPane.classList.contains('collapsed');
+    const isInDragArea = isCollapsed || e.clientY - rect.top < 40;
+    const isEmptyArea = isCollapsed || !e.target.closest('button, input, select, div[style*="margin-bottom"]');
 
     if (isInDragArea || isEmptyArea) {
         isDragging = true;
+        hasDragged = false; // Reset at start of drag
         controlPane.classList.add('dragging');
 
         // Calculate offset from mouse to top-left corner of panel
@@ -604,6 +753,8 @@ controlPane.addEventListener('mousedown', (e) => {
 document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
 
+    hasDragged = true; // Mark that we've actually moved during drag
+
     const newX = e.clientX - dragOffset.x;
     const newY = e.clientY - dragOffset.y;
 
@@ -614,6 +765,9 @@ document.addEventListener('mousemove', (e) => {
     const constrainedX = Math.max(0, Math.min(maxX, newX));
     const constrainedY = Math.max(0, Math.min(maxY, newY));
 
+    // Update current position and apply directly
+    currentPosition.x = constrainedX;
+    currentPosition.y = constrainedY;
     controlPane.style.left = constrainedX + 'px';
     controlPane.style.top = constrainedY + 'px';
 });
@@ -623,18 +777,36 @@ document.addEventListener('mouseup', () => {
     if (isDragging) {
         isDragging = false;
         controlPane.classList.remove('dragging');
+        // Position is already set correctly in mousemove, no need to convert
+        if (hasDragged) {
+            saveControlPanelState(); // Save position after dragging
+        }
     }
 });
 
 // Touch events for mobile support
+let touchStartPos = { x: 0, y: 0 };
+
 controlPane.addEventListener('touchstart', (e) => {
+    // Don't start dragging if touching the collapse button
+    if (e.target.id === 'collapseBtn') {
+        return;
+    }
+
     const rect = controlPane.getBoundingClientRect();
     const touch = e.touches[0];
-    const isInDragArea = touch.clientY - rect.top < 40;
-    const isEmptyArea = !e.target.closest('button, input, select, div[style*="margin-bottom"]');
+    const isCollapsed = controlPane.classList.contains('collapsed');
+    const isInDragArea = isCollapsed || touch.clientY - rect.top < 40;
+    const isEmptyArea = isCollapsed || !e.target.closest('button, input, select, div[style*="margin-bottom"]');
 
+    // Store touch start position
+    touchStartPos.x = touch.clientX;
+    touchStartPos.y = touch.clientY;
+
+    // Start dragging IMMEDIATELY - no delays or conditions
     if (isInDragArea || isEmptyArea) {
         isDragging = true;
+        hasDragged = false; // Reset at start of drag
         controlPane.classList.add('dragging');
 
         dragOffset.x = touch.clientX - rect.left;
@@ -647,6 +819,8 @@ controlPane.addEventListener('touchstart', (e) => {
 document.addEventListener('touchmove', (e) => {
     if (!isDragging) return;
 
+    hasDragged = true; // Mark that we've actually moved during drag
+
     const touch = e.touches[0];
     const newX = touch.clientX - dragOffset.x;
     const newY = touch.clientY - dragOffset.y;
@@ -657,15 +831,22 @@ document.addEventListener('touchmove', (e) => {
     const constrainedX = Math.max(0, Math.min(maxX, newX));
     const constrainedY = Math.max(0, Math.min(maxY, newY));
 
+    // Update current position and apply directly
+    currentPosition.x = constrainedX;
+    currentPosition.y = constrainedY;
     controlPane.style.left = constrainedX + 'px';
     controlPane.style.top = constrainedY + 'px';
 
     e.preventDefault();
 });
 
-document.addEventListener('touchend', () => {
+document.addEventListener('touchend', (e) => {
     if (isDragging) {
         isDragging = false;
         controlPane.classList.remove('dragging');
+        // Position is already set correctly in touchmove, no need to convert
+        if (hasDragged) {
+            saveControlPanelState(); // Save position after touch dragging
+        }
     }
 });

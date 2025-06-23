@@ -28,6 +28,89 @@ html {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     cursor: move;
     user-select: none;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Collapsed state when collapse button is clicked (sidemenu)*/
+#control-pane.collapsed {
+    width: 60px;
+    height: 60px;
+    padding: 12px;
+    border-radius: 50%;
+    background: #333;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    cursor: move;
+}
+
+#control-pane.collapsed > * {
+    display: none;
+}
+
+#control-pane.collapsed::before {
+    display: none;
+}
+
+/* Collapse button styles - consistent with other buttons */
+.collapse-btn {
+    position: absolute !important;
+    top: 12px !important;
+    left: 12px !important;
+    width: 32px !important;
+    height: 32px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    background: linear-gradient(135deg, #555, #444) !important;
+    color: #fff !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 1001 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+.collapse-btn:hover {
+    background: linear-gradient(135deg, #666, #555) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.collapse-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Hide collapse button when collapsed */
+#control-pane.collapsed .collapse-btn {
+    display: none !important;
+}
+
+#control-pane.collapsed::after {
+    content: "☰";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+}
+
+#control-pane.collapsed:hover {
+    background: #444;
+    transform: scale(1.1);
 }
 
 /* allows interaction with form elements inside the control pane */
@@ -49,20 +132,12 @@ html {
 #control-pane.dragging {
     opacity: 0.9;
     cursor: grabbing;
+    transition: none !important;
+    transform: translateZ(0);
+    will-change: transform;
 }
 
-/* Add a drag handle at the top */
-#control-pane::before {
-    content: "⋮⋮⋮";
-    text-align: center;
-    font-size: 14px;
-    color: #888;
-    margin: -12px -12px 12px -12px;
-    padding: 8px;
-    background: #333;
-    border-radius: 8px 8px 0 0;
-    cursor: grab;
-}
+/* Remove the dotted drag handle - dragging works anywhere on the control pane */
 #control-pane button {
     margin: 2px;
     padding: 12px 16px;
@@ -402,8 +477,32 @@ html {
     overflow: hidden !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
-    margin-bottom: 20px !important;
+    margin-bottom: 8px !important;
     width: 100%;
+}
+
+/* Instructions text under Start Capture button */
+#control-pane p {
+    font-size: 0.85rem;
+    color: #ccc;
+    text-align: center;
+    margin: 8px 0 20px 0;
+    line-height: 1.4;
+    opacity: 0.9;
+}
+
+/* UI State Management - Hide highlighter options initially */
+.highlighter-options {
+    display: none;
+}
+
+.highlighter-options.show {
+    display: block;
+}
+
+/* Hide start capture section when screen is captured */
+.start-capture-section.hide {
+    display: none;
 }
 
 #startBtn::before {
@@ -443,6 +542,66 @@ html {
 }
 
 #startBtn:active::after {
+    width: 120%;
+    height: 120%;
+}
+
+/* Stop Capture Button - Secondary Action Button */
+#stopBtn {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: white !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    padding: 12px 20px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 20px !important;
+    width: 100%;
+}
+
+#stopBtn::before {
+    content: "⏹";
+    margin-right: 8px;
+    font-size: 0.9rem;
+}
+
+#stopBtn:hover {
+    background: linear-gradient(135deg, #f87171, #ef4444) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+#stopBtn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3) !important;
+}
+
+#stopBtn:focus {
+    outline: none !important;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3), 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Ripple effect for the stop button */
+#stopBtn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+#stopBtn:active::after {
     width: 120%;
     height: 120%;
 }
