@@ -241,13 +241,41 @@ function stopScreenCapture() {
     }
 }
 
-// Start screen capture and render loop
-async function start() {
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false,
-    });
+// Proper Screen Capture API implementation according to MDN documentation
+async function startScreenCapture(options = {}) {
+    console.log('🚀 Starting screen capture with proper API');
 
+    try {
+        // Use proper MediaStreamConstraints according to MDN docs
+        const displayMediaOptions = {
+            video: {
+                displaySurface: "browser", // Prefer browser tabs
+                logicalSurface: true,
+                cursor: "always",
+                width: { max: 1920 },
+                height: { max: 1080 },
+                frameRate: { max: 30 }
+            },
+            audio: false
+        };
+
+        console.log('Requesting display media with proper constraints...');
+        const stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+        console.log('✅ Screen capture successful!', stream);
+
+        // Use the captured stream
+        await initializeCapture(stream);
+
+    } catch (error) {
+        console.warn('Screen capture failed:', error);
+        throw error; // Re-throw to let caller handle
+    }
+}
+
+
+
+// Initialize capture with a given stream (shared code)
+async function initializeCapture(stream) {
     // Store stream reference for stopping
     currentStream = stream;
     video.srcObject = stream;
@@ -302,9 +330,134 @@ async function start() {
     }
 }
 
+// Start screen capture with proper error handling
+async function start() {
+    try {
+        await startScreenCapture();
+    } catch (error) {
+        console.error('❌ Screen capture failed:', error);
+
+        // Show detailed error message based on the error type
+        let errorMessage = 'Screen capture failed. ';
+
+        if (error.name === 'NotAllowedError') {
+            errorMessage += 'Permission was denied. Please click the button again and allow screen sharing.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No screen capture sources available.';
+        } else if (error.name === 'NotSupportedError') {
+            errorMessage += 'Screen capture is not supported in this browser.';
+        } else if (error.name === 'InvalidStateError') {
+            errorMessage += 'Please make sure you clicked the button (user interaction required).';
+        } else {
+            errorMessage += `Error: ${error.name} - ${error.message}`;
+        }
+
+        alert(errorMessage);
+
+        // Reset UI to initial state
+        showStartCaptureSection();
+        return;
+    }
+}
+
+// Extension loading management
+let extensionLoadingOverlay = null;
+
+function showExtensionLoading() {
+    extensionLoadingOverlay = document.getElementById('extension-loading');
+    if (extensionLoadingOverlay) {
+        extensionLoadingOverlay.classList.remove('hidden');
+        console.log('Showing extension loading animation');
+    }
+}
+
+function hideExtensionLoading() {
+    if (extensionLoadingOverlay) {
+        extensionLoadingOverlay.classList.add('hidden');
+        console.log('Hiding extension loading animation');
+    }
+}
+
+// Extension integration - listen for tab capture messages
+window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+
+    if (event.data.type === 'TAB_CAPTURE_READY') {
+        console.log('Tab capture ready from extension:', event.data);
+
+        // Show loading animation
+        showExtensionLoading();
+
+        // Auto-start capture after a brief delay
+        setTimeout(async () => {
+            try {
+                console.log('Auto-starting capture from extension...');
+                if (window.startTabCapture) {
+                    const stream = await window.startTabCapture();
+                    // Hide loading when capture starts
+                    hideExtensionLoading();
+                    await initializeCapture(stream);
+                } else {
+                    // Fallback to regular screen capture
+                    await start();
+                    hideExtensionLoading();
+                }
+            } catch (error) {
+                console.warn('Auto-capture failed, user will need to click button:', error);
+                hideExtensionLoading();
+            }
+        }, 800);
+    }
+});
+
 // Button event listeners
-document.getElementById("startBtn").addEventListener("click", () => {
-    start();
+document.getElementById("startBtn").addEventListener("click", async (event) => {
+    console.log('Start button clicked!');
+    console.log('Event type:', event.type);
+    console.log('User activation available:', navigator.userActivation?.isActive);
+    console.log('getDisplayMedia available:', !!navigator.mediaDevices?.getDisplayMedia);
+    console.log('Secure context:', window.isSecureContext);
+    console.log('Location:', window.location.href);
+
+    // Check if Screen Capture API is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        alert('Screen Capture API is not supported in this browser. Please use Chrome 72+ or Firefox 66+.');
+        return;
+    }
+
+    // Check if we're in a secure context (required for Screen Capture API)
+    if (!window.isSecureContext) {
+        alert('Screen Capture API requires HTTPS. Please serve your application over HTTPS.');
+        return;
+    }
+
+    try {
+        console.log('About to call start() with proper Screen Capture API...');
+
+        // Hide loading if it's showing
+        hideExtensionLoading();
+
+        // Check if extension provided tab capture function
+        if (window.startTabCapture) {
+            console.log('Using extension tab capture...');
+            const stream = await window.startTabCapture();
+            await initializeCapture(stream);
+        } else {
+            await start();
+        }
+    } catch (error) {
+        console.error('Error in start() function:', error);
+
+        // Provide more specific error guidance
+        let errorGuidance = '';
+        if (error.name === 'NotAllowedError') {
+            errorGuidance = 'Make sure to select a screen or window to share in the browser dialog.';
+        } else if (error.name === 'NotSupportedError') {
+            errorGuidance = 'Your browser version may not support all features. Try updating your browser.';
+        }
+
+        alert(`Screen capture failed: ${error.name} - ${error.message}${errorGuidance ? '\n\n' + errorGuidance : ''}`);
+    }
 });
 
 document.getElementById("stopBtn").addEventListener("click", () => {
