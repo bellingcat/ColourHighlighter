@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Colour Highlighter Shortcut",
+  "version": "1.0.0",
+  "description": "Quick shortcut to launch Colour Highlighter with smart tab capture",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "tabCapture",
+    "scripting"
+  ],
+  "host_permissions": [
+    // allow the extension to inject scripts into the highlighter app
+    // change to the url of the highlighter app
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Highlight Current Tab",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  }
+} 
