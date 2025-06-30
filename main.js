@@ -2,6 +2,7 @@ const canvas = document.getElementById("glcanvas");
 const gl = canvas.getContext("webgl");
 const video = document.getElementById("video");
 
+
 // Hide canvas initially
 canvas.style.display = "none";
 
@@ -27,35 +28,11 @@ async function loadShaderFromFile(file, type) {
     return shader;
 }
 
-let currentLUT = "LUTs/blue-isolated.png";
-let lutTexture = null;
-let lutImage = null;
-let lutLocation = null;
 let glProgram = null;
-let u_enableLUT = null;
-let u_enableChromaKey = null;
-let u_enableColorCorrection = null;
-let u_numChromaKeys = null;
-let u_numColorCorrections = null;
-let u_ckey_color = null, u_ckey_similarity = null, u_ckey_smoothness = null, u_ckey_spill = null;
-let u_ccor_gamma = null, u_ccor_contrast = null, u_ccor_saturation = null;
-let lutEnabled = true;
-
-// Add support for enabling/disabling LUT in the shader
-async function loadLUTTexture(lutFile) {
-    if (!lutTexture) {
-        lutTexture = gl.createTexture();
-    }
-    lutImage = new Image();
-    lutImage.src = lutFile.startsWith("LUTs/") || lutFile === "none" ? lutFile : "LUTs/" + lutFile;
-    await lutImage.decode();
-
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, lutTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, lutImage);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-}
+let u_targetHSV = null;
+let u_toleranceHSV = null;
+let u_enableEdgeDetect = null;
+let u_texelSize = null;
 
 async function initGL() {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -117,23 +94,12 @@ async function initGL() {
     gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 16, 0);
     gl.vertexAttribPointer(a_texCoord, 2, gl.FLOAT, false, 16, 8);
 
-    // LUT Texture
-    lutLocation = gl.getUniformLocation(program, "u_lut");
-    u_enableLUT = gl.getUniformLocation(program, "u_enableLUT");
-    u_enableChromaKey = gl.getUniformLocation(program, "u_enableChromaKey");
-    u_enableColorCorrection = gl.getUniformLocation(program, "u_enableColorCorrection");
-    u_numChromaKeys = gl.getUniformLocation(program, "u_numChromaKeys");
-    u_numColorCorrections = gl.getUniformLocation(program, "u_numColorCorrections");
-    u_ckey_color = gl.getUniformLocation(program, "u_ckey_color");
-    u_ckey_similarity = gl.getUniformLocation(program, "u_ckey_similarity");
-    u_ckey_smoothness = gl.getUniformLocation(program, "u_ckey_smoothness");
-    u_ckey_spill = gl.getUniformLocation(program, "u_ckey_spill");
-    u_ccor_gamma = gl.getUniformLocation(program, "u_ccor_gamma");
-    u_ccor_contrast = gl.getUniformLocation(program, "u_ccor_contrast");
-    u_ccor_saturation = gl.getUniformLocation(program, "u_ccor_saturation");
-    await loadLUTTexture(currentLUT);
-    gl.uniform1i(lutLocation, 1); // texture unit 1
-    gl.uniform1i(u_enableLUT, 1);
+
+    u_targetHSV = gl.getUniformLocation(program, "u_targetHSV");
+    u_toleranceHSV = gl.getUniformLocation(program, "u_toleranceHSV");
+    u_enableEdgeDetect = gl.getUniformLocation(program, "u_enableEdgeDetect");
+    u_texelSize = gl.getUniformLocation(program, "u_texelSize");
+
 
     // Video Texture
     const videoTexture = gl.createTexture();
@@ -144,6 +110,10 @@ async function initGL() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     const videoLocation = gl.getUniformLocation(program, "u_video");
     gl.uniform1i(videoLocation, 0); // texture unit 0
+
+    gl.uniform3f(u_targetHSV, 0.6, 1.0, 1.0);
+    gl.uniform3f(u_toleranceHSV, 0.1, 0.5, 0.5);
+    gl.uniform1i(u_enableEdgeDetect, true);
 
     return { videoTexture };
 }
@@ -159,44 +129,6 @@ function fillArray(arr, def, len = 4) {
     return out;
 }
 
-async function setFilter(config) {
-    gl.useProgram(glProgram);
-
-    // Chroma Key
-    const chromaKeys = config.chromaKeys || [];
-    gl.uniform1i(u_numChromaKeys, chromaKeys.length);
-    const ckey_color = fillArray(chromaKeys.map(k => k.ckey_color), [0, 0, 0]);
-    const ckey_similarity = fillArray(chromaKeys.map(k => k.ckey_similarity), 0.0);
-    const ckey_smoothness = fillArray(chromaKeys.map(k => k.ckey_smoothness), 0.0);
-    const ckey_spill = fillArray(chromaKeys.map(k => k.ckey_spill), 0.0);
-    gl.uniform3fv(u_ckey_color, ckey_color.flat());
-    gl.uniform1fv(u_ckey_similarity, ckey_similarity);
-    gl.uniform1fv(u_ckey_smoothness, ckey_smoothness);
-    gl.uniform1fv(u_ckey_spill, ckey_spill);
-
-    // Color Correction
-    const colorCorrections = config.colorCorrections || [];
-    gl.uniform1i(u_numColorCorrections, colorCorrections.length);
-    const ccor_gamma = fillArray(colorCorrections.map(c => c.gamma), 0.0);
-    const ccor_contrast = fillArray(colorCorrections.map(c => c.contrast), 0.0);
-    const ccor_saturation = fillArray(colorCorrections.map(c => c.saturation), 1.0);
-    gl.uniform1fv(u_ccor_gamma, ccor_gamma);
-    gl.uniform1fv(u_ccor_contrast, ccor_contrast);
-    gl.uniform1fv(u_ccor_saturation, ccor_saturation);
-
-    // LUT
-    if (!config.enableLUT) {
-        lutEnabled = false;
-        gl.uniform1i(u_enableLUT, 0);
-    } else {
-        lutEnabled = true;
-        await loadLUTTexture(config.lut);
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, lutTexture);
-        gl.uniform1i(lutLocation, 1);
-        gl.uniform1i(u_enableLUT, 1);
-    }
-}
 
 // Start screen capture and render loop
 async function start() {
@@ -223,10 +155,11 @@ async function start() {
         gl.bindTexture(gl.TEXTURE_2D, videoTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
 
-        if (lutEnabled) {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, lutTexture);
-        }
+
+        gl.uniform2f(u_texelSize,
+            1.0 / video.videoWidth,
+            1.0 / video.videoHeight
+        );
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         requestAnimationFrame(render);
@@ -253,29 +186,3 @@ document.getElementById("startBtn").addEventListener("click", () => {
     start();
 });
 
-// Remove the hardcoded button selection logic and instead generate buttons dynamically
-const filterBar = document.querySelector("#filterButtons"); // The div containing the filter buttons
-
-// Remove all existing filter buttons (if any)
-filterBar.querySelectorAll(".lut-btn").forEach(btn => btn.remove());
-
-// Dynamically create filter buttons from filterConfigs
-filterConfigs.forEach((filter, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "lut-btn";
-    btn.setAttribute("data-filter", filter.id);
-    btn.textContent = filter.name || filter.id;
-    if (idx === 1) btn.classList.add("active"); // Blue as default
-    btn.addEventListener("click", async () => {
-        filterBar.querySelectorAll(".lut-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        await setFilter(filter);
-    });
-    filterBar.appendChild(btn);
-});
-
-// Optionally, set initial config on load
-setFilter(filterConfigs.find(f => f.id === "blue")); // Blue as default
-
-// Import filterConfigs from configs.js
-import { filterConfigs } from "./configs.js";
