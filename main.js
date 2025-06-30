@@ -2,6 +2,8 @@ const canvas = document.getElementById("glcanvas");
 const gl = canvas.getContext("webgl");
 const video = document.getElementById("video");
 
+const wheelCanvas = document.getElementById('wheel');
+const wGL = wheelCanvas.getContext('webgl');
 
 // Hide canvas initially
 canvas.style.display = "none";
@@ -15,18 +17,16 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Utility: load shader
-async function loadShaderFromFile(file, type) {
-    const res = await fetch(file);
-    const src = await res.text();
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        throw new Error(gl.getShaderInfoLog(shader));
-    }
-    return shader;
-}
+// DOM elements
+const valueRange = document.getElementById('valueRange');
+const valLowMarker = document.getElementById('valLowMarker');
+const valHighMarker = document.getElementById('valHighMarker');
+const hueTol = document.getElementById('hueTol');
+const satTol = document.getElementById('satTol');
+const valTol = document.getElementById('valTol');
+const resetBtn = document.getElementById('resetBtn');
+const debugHSV = document.getElementById('debugHSV');
+const debugTol = document.getElementById('debugTol');
 
 let glProgram = null;
 let u_targetHSV = null;
@@ -34,9 +34,87 @@ let u_toleranceHSV = null;
 let u_enableEdgeDetect = null;
 let u_texelSize = null;
 
+const wheelLocs = {
+    targetHSV: null,
+    toleranceHSV: null,
+    value: null,
+    highlight: null,
+    resolution: null
+};
+
+const defaults = { tolHSV: [0.05, 0.2, 0.2] };
+const state = {
+    targetHSV: [0, 0, 1],
+    tolHSV: [...defaults.tolHSV],
+    value: 1,
+    highlight: false
+};
+
+// Utility: load shader
+async function loadShaderFromFile(file, type, glContext = gl) {
+    const res = await fetch(file);
+    const src = await res.text();
+    return compileShader(src, type, glContext);
+}
+
+// Utility: compile shader from source
+function compileShader(src, type, glContext = gl) {
+    const shader = glContext.createShader(type);
+    glContext.shaderSource(shader, src);
+    glContext.compileShader(shader);
+    if (!glContext.getShaderParameter(shader, glContext.COMPILE_STATUS)) {
+        console.error(glContext.getShaderInfoLog(shader));
+    }
+    return shader;
+}
+
+async function initWheelGL() {
+    
+    // HSV wheel shader setup
+    // -------------------------
+
+    const wheelVertexShaderSource = `
+      attribute vec2 a_position;
+      void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
+    const wheelVertexShader = compileShader(wheelVertexShaderSource, wGL.VERTEX_SHADER, wGL);
+    const wheelFragmentShader = await loadShaderFromFile('hsvWheel.frag', wGL.FRAGMENT_SHADER, wGL);
+
+    const wheelProgram = wGL.createProgram();
+    wGL.attachShader(wheelProgram, wheelVertexShader);
+    wGL.attachShader(wheelProgram, wheelFragmentShader);
+    wGL.linkProgram(wheelProgram);
+    wGL.useProgram(wheelProgram);
+
+    // Fullscreen quad
+    const quadBuf = wGL.createBuffer();
+    wGL.bindBuffer(wGL.ARRAY_BUFFER, quadBuf);
+    wGL.bufferData(wGL.ARRAY_BUFFER, new Float32Array([
+        -1, -1,
+        1, -1,
+        -1, 1,
+        1, 1
+    ]), wGL.STATIC_DRAW);
+    const aPos = wGL.getAttribLocation(wheelProgram, 'a_position');
+    wGL.enableVertexAttribArray(aPos);
+    wGL.vertexAttribPointer(aPos, 2, wGL.FLOAT, false, 0, 0);
+
+    wheelLocs.targetHSV = wGL.getUniformLocation(wheelProgram, 'u_targetHSV');
+    wheelLocs.toleranceHSV = wGL.getUniformLocation(wheelProgram, 'u_toleranceHSV');
+    wheelLocs.value = wGL.getUniformLocation(wheelProgram, 'u_value');
+    wheelLocs.highlight = wGL.getUniformLocation(wheelProgram, 'u_highlight');
+    wheelLocs.resolution = wGL.getUniformLocation(wheelProgram, 'u_resolution');
+
+    wGL.uniform2f(wheelLocs.resolution, wheelCanvas.width, wheelCanvas.height);
+}
+
 async function initGL() {
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, `
+
+    // Main canvas shader setup
+    // -------------------------
+    const vertexShaderSource = `
     attribute vec2 a_position;
     attribute vec2 a_texCoord;
     varying vec2 v_texCoord;
@@ -45,8 +123,8 @@ async function initGL() {
       v_texCoord = a_texCoord;
       gl_Position = vec4(a_position * u_scale, 0, 1);
     }
-  `);
-    gl.compileShader(vertexShader);
+  `;
+    const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
 
     const fragmentShader = await loadShaderFromFile('shader.frag', gl.FRAGMENT_SHADER);
 
@@ -129,6 +207,53 @@ function fillArray(arr, def, len = 4) {
     return out;
 }
 
+// Helper to convert HSV to RGB for CSS
+function hsvToCss(h, s, v) {
+    let r, g, b;
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+    }
+    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+function updateSliderGradient() {
+    const [h, s] = state.targetHSV;
+    const start = hsvToCss(h, s, 0);
+    const end = hsvToCss(h, s, 1);
+    valueRange.style.background = `linear-gradient(to right, ${start}, ${end})`;
+}
+
+function updateValueMarkers() {
+    const lowPct = Math.max(0, state.value - state.tolHSV[2]) * 100;
+    const highPct = Math.min(1, state.value + state.tolHSV[2]) * 100;
+    valLowMarker.style.left = lowPct + '%';
+    valHighMarker.style.left = highPct + '%';
+}
+
+function updateDebugText() {
+    debugHSV.textContent = `(${state.targetHSV.map(v => v.toFixed(2)).join(', ')})`;
+    debugTol.textContent = `(${state.tolHSV.map(v => v.toFixed(2)).join(', ')})`;
+}
+
+
+// Helper to update uniforms when state changes
+function updateGLUniforms() {
+    if (glProgram && u_targetHSV && u_toleranceHSV) {
+        gl.useProgram(glProgram);
+        gl.uniform3fv(u_targetHSV, state.targetHSV);
+        gl.uniform3fv(u_toleranceHSV, state.tolHSV);
+    }
+}
 
 // Start screen capture and render loop
 async function start() {
@@ -181,8 +306,81 @@ async function start() {
     }
 }
 
-// Button event listeners
+// UI event handlers
+// -----------------
+
 document.getElementById("startBtn").addEventListener("click", () => {
     start();
 });
+
+function renderWheel() {
+    wGL.uniform3fv(wheelLocs.targetHSV, state.targetHSV);
+    wGL.uniform3fv(wheelLocs.toleranceHSV, state.tolHSV);
+    wGL.uniform1f(wheelLocs.value, state.value);
+    wGL.uniform1i(wheelLocs.highlight, state.highlight);
+    wGL.drawArrays(wGL.TRIANGLE_STRIP, 0, 4);
+    updateSliderGradient();
+    updateValueMarkers();
+    updateDebugText();
+}
+
+valueRange.addEventListener('input', e => {
+    state.value = parseFloat(e.target.value);
+    state.targetHSV[2] = state.value;
+    state.highlight = true;
+    updateGLUniforms();
+    renderWheel();
+});
+hueTol.addEventListener('input', e => {
+    state.tolHSV[0] = parseFloat(e.target.value);
+    state.highlight = true;
+    updateGLUniforms();
+    renderWheel();
+});
+satTol.addEventListener('input', e => {
+    state.tolHSV[1] = parseFloat(e.target.value);
+    state.highlight = true;
+    updateGLUniforms();
+    renderWheel();
+});
+valTol.addEventListener('input', e => {
+    state.tolHSV[2] = parseFloat(e.target.value);
+    state.highlight = true;
+    updateGLUniforms();
+    renderWheel();
+});
+resetBtn.addEventListener('click', () => {
+    state.tolHSV = [...defaults.tolHSV];
+    hueTol.value = defaults.tolHSV[0];
+    satTol.value = defaults.tolHSV[1];
+    valTol.value = defaults.tolHSV[2];
+    state.highlight = false;
+    updateGLUniforms();
+    renderWheel();
+});
+
+// Wheel interaction
+let dragging = false;
+wheelCanvas.addEventListener('mousedown', e => { dragging = true; onPointer(e); });
+wheelCanvas.addEventListener('mousemove', e => { if (dragging) onPointer(e); });
+window.addEventListener('mouseup', () => { dragging = false; });
+function onPointer(e) {
+    const rect = wheelCanvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const nx = (px / rect.width) * 2 - 1;
+    const ny = 1 - (py / rect.height) * 2;
+    const r = Math.hypot(nx, ny);
+    if (r > 1) return;
+    const ang = Math.atan2(ny, nx);
+    const hue = (ang + Math.PI) / (2 * Math.PI);
+    state.targetHSV[0] = hue;
+    state.targetHSV[1] = r;
+    state.highlight = true;
+    updateGLUniforms();
+    renderWheel();
+}
+
+await initWheelGL();
+renderWheel();
 

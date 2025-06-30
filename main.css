@@ -6,13 +6,15 @@ html {
     font-family: sans-serif;
     background: #444;
 }
+
 #container {
     display: flex;
     height: 100vh;
     width: 100vw;
 }
+
 #control-pane {
-    width: 220px;
+    width: 300px;
     background: #222;
     color: #fff;
     padding: 24px 12px;
@@ -22,6 +24,7 @@ html {
     gap: 18px;
     z-index: 2;
 }
+
 #control-pane button {
     margin: 2px;
     padding: 8px 12px;
@@ -33,15 +36,98 @@ html {
     cursor: pointer;
     transition: background 0.2s;
 }
+
 #control-pane button.active,
 #control-pane button:focus {
     background: rgb(251, 180, 0);
     color: black;
     outline: none;
 }
+
 #glcanvas {
     flex: 1;
     display: block;
     width: 100%;
     height: 100%;
+}
+
+#wheel {
+    width: 280px;
+    height: 280px;
+    border: 1px solid #ccc;
+    cursor: crosshair;
+}
+
+.control {
+    margin: 15px 0;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.slider-container {
+    position: relative;
+    width: 100%;
+    height: 50px;
+}
+
+.slider-container label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    font-size: 14px;
+}
+
+#valueRange {
+    position: absolute;
+    top: 24px;
+    width: 100%;
+    height: 20px;
+    -webkit-appearance: none;
+    background: #ccc;
+    border-radius: 10px;
+    outline: none;
+}
+
+#valueRange::-webkit-slider-thumb,
+#valueRange::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #999;
+    cursor: pointer;
+}
+
+.marker {
+    position: absolute;
+    top: 22px;
+    width: 2px;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    transform: translateX(-1px);
+}
+
+input[type="range"] {
+    width: 100%;
+}
+
+button {
+    margin-top: 10px;
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+#debug {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+#debug p {
+    margin: 4px 0;
 }

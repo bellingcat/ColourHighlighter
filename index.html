@@ -1,28 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Bellingcat Colour Highlighter</title>
   <link rel="stylesheet" href="main.css">
 </head>
+
 <body>
   <div id="container">
     <div id="control-pane">
       <div style="text-align:center;">
-        <img src="assets/logo.svg" alt="Logo" style="width: 100%; max-width: 160px; margin-bottom: 18px; display: block; margin-left: auto; margin-right: auto;">
+        <img src="assets/logo.svg" alt="Logo"
+          style="width: 100%; max-width: 160px; margin-bottom: 18px; display: block; margin-left: auto; margin-right: auto;">
         <h3>Colour Highlighter</h1>
-    </div>
-    <p>
-        Click 'Start Capture' below and select the window or screen you want to highlight.
-    </p>
-      <button id="startBtn">Start Capture</button>
-      <div>
-        <div id="filterButtons" style="margin-bottom:6px;">Select Highlighter:</div>
       </div>
+      <p>
+        Click 'Start Capture' below and select the window or screen you want to highlight.
+      </p>
+      <button id="startBtn">Start Capture</button>
+      <canvas id="wheel" width="280" height="280"></canvas>
+
+      <div class="control slider-container">
+        <label for="valueRange">Value (V)</label>
+        <input type="range" id="valueRange" min="0" max="1" step="0.01" value="1">
+        <div class="marker" id="valLowMarker"></div>
+        <div class="marker" id="valHighMarker"></div>
+      </div>
+
+      <div class="control">
+        <label for="hueTol">Hue Tolerance</label>
+        <input type="range" id="hueTol" min="0" max="0.5" step="0.005" value="0.05">
+      </div>
+      <div class="control">
+        <label for="satTol">Saturation Tolerance</label>
+        <input type="range" id="satTol" min="0" max="1" step="0.01" value="0.2">
+      </div>
+      <div class="control">
+        <label for="valTol">Value Tolerance</label>
+        <input type="range" id="valTol" min="0" max="1" step="0.01" value="0.2">
+      </div>
+      <button id="resetBtn">Reset</button>
+
+      <div id="debug">
+        <p>Selected HSV: <span id="debugHSV">(0.00, 0.00, 1.00)</span></p>
+        <p>Tolerance HSV: <span id="debugTol">(0.05, 0.20, 0.20)</span></p>
+      </div>
+
     </div>
     <canvas id="glcanvas"></canvas>
   </div>
   <video id="video" autoplay muted playsinline style="display:none;"></video>
   <script type="module" src="main.js"></script>
 </body>
+
 </html>
