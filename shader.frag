@@ -2,10 +2,15 @@
 precision mediump float;
 
 uniform sampler2D u_video;
-uniform vec3      u_targetHSV;     // (H ∈ [0,1], S ∈ [0,1], V ∈ [0,1])
-uniform vec3      u_toleranceHSV;  // tolerances (ΔH, ΔS, ΔV)
-uniform bool      u_enableEdgeDetect;
 uniform vec2      u_texelSize;     // = 1.0 / textureSize
+uniform bool     u_enableEdgeDetect; // enable edge detection on mask
+
+#define MAX_TARGETS 8
+
+uniform int   u_numTargets;
+uniform vec3  u_targetHSV[MAX_TARGETS];
+uniform vec3  u_toleranceHSV[MAX_TARGETS];
+uniform int   u_operations[MAX_TARGETS]; // 0: union, 1: intersection, 2: difference
 
 varying vec2      v_texCoord;
 
@@ -40,11 +45,28 @@ void main() {
     vec4  color = texture2D(u_video, v_texCoord);
     vec3  hsv   = rgb2hsv(color.rgb);
 
-    // build the mask
-    bool inHue = hueWithin(hsv.x, u_targetHSV.x, u_toleranceHSV.x);
-    bool inSat = abs(hsv.y - u_targetHSV.y) <= u_toleranceHSV.y;
-    bool inVal = abs(hsv.z - u_targetHSV.z) <= u_toleranceHSV.z;
-    float mask = (inHue && inSat && inVal) ? 1.0 : 0.0;
+    float mask = 0.0;
+
+    for(int i = 0; i < MAX_TARGETS; ++i) {
+        if(i >= u_numTargets) break;
+
+        bool inHue = hueWithin(hsv.x, u_targetHSV[i].x, u_toleranceHSV[i].x);
+        bool inSat = abs(hsv.y - u_targetHSV[i].y) <= u_toleranceHSV[i].y;
+        bool inVal = abs(hsv.z - u_targetHSV[i].z) <= u_toleranceHSV[i].z;
+        float thisMask = (inHue && inSat && inVal) ? 1.0 : 0.0;
+
+        if(i == 0) {
+            mask = thisMask;
+        } else {
+            if(u_operations[i] == 0) { // union
+                mask = max(mask, thisMask);
+            } else if(u_operations[i] == 1) { // intersection
+                mask = mask * thisMask;
+            } else if(u_operations[i] == 2) { // difference
+                mask = mask * (1.0 - thisMask);
+            }
+        }
+    }
 
     // base output: color vs grayscale
     vec3 outColor;

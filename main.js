@@ -31,12 +31,16 @@ const debugTol = document.getElementById('debugTol');
 let glProgram = null;
 let u_targetHSV = null;
 let u_toleranceHSV = null;
+let u_operations = null; // Add this line
+let u_numTargets = null; // Add this line
 let u_enableEdgeDetect = null;
 let u_texelSize = null;
 
 const wheelLocs = {
     targetHSV: null,
     toleranceHSV: null,
+    operations: null,      // Add this line
+    numTargets: null,      // Add this line
     value: null,
     highlight: null,
     resolution: null
@@ -103,6 +107,8 @@ async function initWheelGL() {
 
     wheelLocs.targetHSV = wGL.getUniformLocation(wheelProgram, 'u_targetHSV');
     wheelLocs.toleranceHSV = wGL.getUniformLocation(wheelProgram, 'u_toleranceHSV');
+    wheelLocs.operations = wGL.getUniformLocation(wheelProgram, 'u_operations'); // Add this line
+    wheelLocs.numTargets = wGL.getUniformLocation(wheelProgram, 'u_numTargets'); // Add this line
     wheelLocs.value = wGL.getUniformLocation(wheelProgram, 'u_value');
     wheelLocs.highlight = wGL.getUniformLocation(wheelProgram, 'u_highlight');
     wheelLocs.resolution = wGL.getUniformLocation(wheelProgram, 'u_resolution');
@@ -175,6 +181,8 @@ async function initGL() {
 
     u_targetHSV = gl.getUniformLocation(program, "u_targetHSV");
     u_toleranceHSV = gl.getUniformLocation(program, "u_toleranceHSV");
+    u_operations = gl.getUniformLocation(program, "u_operations"); // Add this line
+    u_numTargets = gl.getUniformLocation(program, "u_numTargets"); // Add this line
     u_enableEdgeDetect = gl.getUniformLocation(program, "u_enableEdgeDetect");
     u_texelSize = gl.getUniformLocation(program, "u_texelSize");
 
@@ -189,8 +197,24 @@ async function initGL() {
     const videoLocation = gl.getUniformLocation(program, "u_video");
     gl.uniform1i(videoLocation, 0); // texture unit 0
 
-    gl.uniform3f(u_targetHSV, 0.6, 1.0, 1.0);
-    gl.uniform3f(u_toleranceHSV, 0.1, 0.5, 0.5);
+    // Example: set up for a single target (for now, until UI is updated)
+    // You can expand this to multiple targets later
+    const MAX_TARGETS = 8;
+    const targetHSVArray = new Float32Array(MAX_TARGETS * 3);
+    const toleranceHSVArray = new Float32Array(MAX_TARGETS * 3);
+    const operationsArray = new Int32Array(MAX_TARGETS);
+
+    // Fill first entry with state, rest with zeros/defaults
+    targetHSVArray.set(state.targetHSV, 0);
+    toleranceHSVArray.set(state.tolHSV, 0);
+    operationsArray[0] = 0; // 0: union
+
+    gl.useProgram(program);
+    gl.uniform1i(u_numTargets, 1);
+    gl.uniform3fv(u_targetHSV, targetHSVArray);
+    gl.uniform3fv(u_toleranceHSV, toleranceHSVArray);
+    gl.uniform1iv(u_operations, operationsArray);
+
     gl.uniform1i(u_enableEdgeDetect, true);
 
     return { videoTexture };
@@ -248,10 +272,22 @@ function updateDebugText() {
 
 // Helper to update uniforms when state changes
 function updateGLUniforms() {
-    if (glProgram && u_targetHSV && u_toleranceHSV) {
+    if (glProgram && u_targetHSV && u_toleranceHSV && u_operations && u_numTargets) {
         gl.useProgram(glProgram);
-        gl.uniform3fv(u_targetHSV, state.targetHSV);
-        gl.uniform3fv(u_toleranceHSV, state.tolHSV);
+        const MAX_TARGETS = 8;
+        const targetHSVArray = new Float32Array(MAX_TARGETS * 3);
+        const toleranceHSVArray = new Float32Array(MAX_TARGETS * 3);
+        const operationsArray = new Int32Array(MAX_TARGETS);
+
+        // Fill first entry with state, rest with zeros/defaults
+        targetHSVArray.set(state.targetHSV, 0);
+        toleranceHSVArray.set(state.tolHSV, 0);
+        operationsArray[0] = 0; // 0: union
+
+        gl.uniform1i(u_numTargets, 1);
+        gl.uniform3fv(u_targetHSV, targetHSVArray);
+        gl.uniform3fv(u_toleranceHSV, toleranceHSVArray);
+        gl.uniform1iv(u_operations, operationsArray);
     }
 }
 
@@ -314,8 +350,21 @@ document.getElementById("startBtn").addEventListener("click", () => {
 });
 
 function renderWheel() {
-    wGL.uniform3fv(wheelLocs.targetHSV, state.targetHSV);
-    wGL.uniform3fv(wheelLocs.toleranceHSV, state.tolHSV);
+    const MAX_TARGETS = 8;
+    const targetHSVArray = new Float32Array(MAX_TARGETS * 3);
+    const toleranceHSVArray = new Float32Array(MAX_TARGETS * 3);
+    const operationsArray = new Int32Array(MAX_TARGETS);
+
+    // Fill first entry with state, rest with zeros/defaults
+    targetHSVArray.set(state.targetHSV, 0);
+    toleranceHSVArray.set(state.tolHSV, 0);
+    operationsArray[0] = 0; // 0: union
+
+    wGL.useProgram(wGL.getParameter(wGL.CURRENT_PROGRAM));
+    wGL.uniform1i(wheelLocs.numTargets, 1);
+    wGL.uniform3fv(wheelLocs.targetHSV, targetHSVArray);
+    wGL.uniform3fv(wheelLocs.toleranceHSV, toleranceHSVArray);
+    wGL.uniform1iv(wheelLocs.operations, operationsArray);
     wGL.uniform1f(wheelLocs.value, state.value);
     wGL.uniform1i(wheelLocs.highlight, state.highlight);
     wGL.drawArrays(wGL.TRIANGLE_STRIP, 0, 4);
