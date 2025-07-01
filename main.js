@@ -54,6 +54,14 @@ const state = {
     highlight: false
 };
 
+// New operation selection logic
+const OP_NAMES = ["Add", "Intersect", "Subtract"];
+const selections = [{
+    hsv: [0, 0, 1],
+    tol: [...defaults.tolHSV],
+    op: 0 // 0: union, 1: intersection, 2: difference
+}];
+
 // Utility: load shader
 async function loadShaderFromFile(file, type, glContext = gl) {
     const res = await fetch(file);
@@ -251,15 +259,17 @@ function hsvToCss(h, s, v) {
 }
 
 function updateSliderGradient() {
-    const [h, s] = state.targetHSV;
+    const last = selections[selections.length - 1];
+    const [h, s] = last.hsv;
     const start = hsvToCss(h, s, 0);
     const end = hsvToCss(h, s, 1);
     valueRange.style.background = `linear-gradient(to right, ${start}, ${end})`;
 }
 
 function updateValueMarkers() {
-    const lowPct = Math.max(0, state.value - state.tolHSV[2]) * 100;
-    const highPct = Math.min(1, state.value + state.tolHSV[2]) * 100;
+    const last = selections[selections.length - 1];
+    const lowPct = Math.max(0, last.hsv[2] - last.tol[2]) * 100;
+    const highPct = Math.min(1, last.hsv[2] + last.tol[2]) * 100;
     valLowMarker.style.left = lowPct + '%';
     valHighMarker.style.left = highPct + '%';
 }
@@ -279,12 +289,13 @@ function updateGLUniforms() {
         const toleranceHSVArray = new Float32Array(MAX_TARGETS * 3);
         const operationsArray = new Int32Array(MAX_TARGETS);
 
-        // Fill first entry with state, rest with zeros/defaults
-        targetHSVArray.set(state.targetHSV, 0);
-        toleranceHSVArray.set(state.tolHSV, 0);
-        operationsArray[0] = 0; // 0: union
+        for (let i = 0; i < selections.length && i < MAX_TARGETS; ++i) {
+            targetHSVArray.set(selections[i].hsv, i * 3);
+            toleranceHSVArray.set(selections[i].tol, i * 3);
+            operationsArray[i] = selections[i].op;
+        }
 
-        gl.uniform1i(u_numTargets, 1);
+        gl.uniform1i(u_numTargets, selections.length);
         gl.uniform3fv(u_targetHSV, targetHSVArray);
         gl.uniform3fv(u_toleranceHSV, toleranceHSVArray);
         gl.uniform1iv(u_operations, operationsArray);
@@ -355,57 +366,98 @@ function renderWheel() {
     const toleranceHSVArray = new Float32Array(MAX_TARGETS * 3);
     const operationsArray = new Int32Array(MAX_TARGETS);
 
-    // Fill first entry with state, rest with zeros/defaults
-    targetHSVArray.set(state.targetHSV, 0);
-    toleranceHSVArray.set(state.tolHSV, 0);
-    operationsArray[0] = 0; // 0: union
+    for (let i = 0; i < selections.length && i < MAX_TARGETS; ++i) {
+        targetHSVArray.set(selections[i].hsv, i * 3);
+        toleranceHSVArray.set(selections[i].tol, i * 3);
+        operationsArray[i] = selections[i].op;
+    }
 
     wGL.useProgram(wGL.getParameter(wGL.CURRENT_PROGRAM));
-    wGL.uniform1i(wheelLocs.numTargets, 1);
+    wGL.uniform1i(wheelLocs.numTargets, selections.length);
     wGL.uniform3fv(wheelLocs.targetHSV, targetHSVArray);
     wGL.uniform3fv(wheelLocs.toleranceHSV, toleranceHSVArray);
     wGL.uniform1iv(wheelLocs.operations, operationsArray);
-    wGL.uniform1f(wheelLocs.value, state.value);
+    wGL.uniform1f(wheelLocs.value, selections[selections.length - 1].hsv[2]);
     wGL.uniform1i(wheelLocs.highlight, state.highlight);
     wGL.drawArrays(wGL.TRIANGLE_STRIP, 0, 4);
     updateSliderGradient();
     updateValueMarkers();
-    updateDebugText();
+    renderSelectionList();
 }
 
 valueRange.addEventListener('input', e => {
-    state.value = parseFloat(e.target.value);
-    state.targetHSV[2] = state.value;
+    const last = selections[selections.length - 1];
+    last.hsv[2] = parseFloat(e.target.value);
     state.highlight = true;
     updateGLUniforms();
     renderWheel();
 });
 hueTol.addEventListener('input', e => {
-    state.tolHSV[0] = parseFloat(e.target.value);
+    const last = selections[selections.length - 1];
+    last.tol[0] = parseFloat(e.target.value);
     state.highlight = true;
     updateGLUniforms();
     renderWheel();
 });
 satTol.addEventListener('input', e => {
-    state.tolHSV[1] = parseFloat(e.target.value);
+    const last = selections[selections.length - 1];
+    last.tol[1] = parseFloat(e.target.value);
     state.highlight = true;
     updateGLUniforms();
     renderWheel();
 });
 valTol.addEventListener('input', e => {
-    state.tolHSV[2] = parseFloat(e.target.value);
+    const last = selections[selections.length - 1];
+    last.tol[2] = parseFloat(e.target.value);
     state.highlight = true;
     updateGLUniforms();
     renderWheel();
 });
 resetBtn.addEventListener('click', () => {
-    state.tolHSV = [...defaults.tolHSV];
+    const last = selections[selections.length - 1];
+    last.tol = [...defaults.tolHSV];
     hueTol.value = defaults.tolHSV[0];
     satTol.value = defaults.tolHSV[1];
     valTol.value = defaults.tolHSV[2];
     state.highlight = false;
     updateGLUniforms();
     renderWheel();
+});
+document.getElementById('addColorBtn').addEventListener('click', () => {
+    if (selections.length >= 8) return;
+    const last = selections[selections.length - 1];
+    selections.push({
+        hsv: [...last.hsv],
+        tol: [...last.tol],
+        op: 0
+    });
+    updateGLUniforms();
+    renderWheel();
+    syncSlidersToLastSelection();
+});
+document.getElementById('subtractColorBtn').addEventListener('click', () => {
+    if (selections.length >= 8) return;
+    const last = selections[selections.length - 1];
+    selections.push({
+        hsv: [...last.hsv],
+        tol: [...last.tol],
+        op: 2
+    });
+    updateGLUniforms();
+    renderWheel();
+    syncSlidersToLastSelection();
+});
+document.getElementById('intersectColorBtn').addEventListener('click', () => {
+    if (selections.length >= 8) return;
+    const last = selections[selections.length - 1];
+    selections.push({
+        hsv: [...last.hsv],
+        tol: [...last.tol],
+        op: 1
+    });
+    updateGLUniforms();
+    renderWheel();
+    syncSlidersToLastSelection();
 });
 
 // Wheel interaction
@@ -423,13 +475,69 @@ function onPointer(e) {
     if (r > 1) return;
     const ang = Math.atan2(ny, nx);
     const hue = (ang + Math.PI) / (2 * Math.PI);
-    state.targetHSV[0] = hue;
-    state.targetHSV[1] = r;
+    const last = selections[selections.length - 1];
+    last.hsv[0] = hue;
+    last.hsv[1] = r;
     state.highlight = true;
     updateGLUniforms();
+    syncSlidersToLastSelection();
     renderWheel();
 }
 
+function renderSelectionList() {
+    const list = document.getElementById('selectionList');
+    list.innerHTML = '';
+    selections.forEach((sel, i) => {
+        const div = document.createElement('div');
+        div.className = 'selection-item';
+        const color = document.createElement('div');
+        color.className = 'selection-color';
+        color.style.background = hsvToCss(sel.hsv[0], sel.hsv[1], sel.hsv[2]);
+        div.appendChild(color);
+        const text = document.createElement('span');
+        // Correct operation label
+        let opLabel = OP_NAMES[sel.op];
+        text.textContent = `${opLabel}: HSV(${sel.hsv.map(v => v.toFixed(2)).join(', ')}) Tol(${sel.tol.map(v => v.toFixed(2)).join(', ')})`;
+        div.appendChild(text);
+
+        // Add X button only to the last item if more than one selection
+        if (i === selections.length - 1 && selections.length > 1) {
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '✕';
+            removeBtn.style.marginLeft = 'auto';
+            removeBtn.style.background = 'transparent';
+            removeBtn.style.color = '#fff';
+            removeBtn.style.border = 'none';
+            removeBtn.style.fontSize = '18px';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.onclick = () => {
+                selections.pop();
+                updateGLUniforms();
+                renderWheel();
+                syncSlidersToLastSelection();
+            };
+            div.appendChild(removeBtn);
+        }
+
+        list.appendChild(div);
+    });
+}
+
+// Initial population of selection list
+renderSelectionList();
+
 await initWheelGL();
 renderWheel();
+
+// After initial render
+syncSlidersToLastSelection();
+
+function syncSlidersToLastSelection() {
+    const last = selections[selections.length - 1];
+    valueRange.value = last.hsv[2];
+    hueTol.value = last.tol[0];
+    satTol.value = last.tol[1];
+    valTol.value = last.tol[2];
+    updateSliderGradient();
+}
 
