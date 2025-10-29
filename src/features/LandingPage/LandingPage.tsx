@@ -37,7 +37,7 @@ const LandingPage: FC<LandingPageProps> = ({ children, onStart }) => {
     <WelcomeWrapper>
       <TopCenter>
         <Image
-          src={isDark ? "/assets/Wordmark_White.svg" : "/assets/Wordmark_Black.svg"}
+          src={isDark ? "/ColourHighlighter/assets/Wordmark_White.svg" : "/ColourHighlighter/assets/Wordmark_Black.svg"}
           alt="Bellingcat Logo"
           width={300}
           height={60}
