@@ -31,16 +31,16 @@ export interface LandingPageProps {
 const LandingPage: FC<LandingPageProps> = ({ children, onStart }) => {
   const theme = useTheme();
   // You can use a more robust check if you have a theme.mode or similar
-  const isDark = theme.colors.background === "#0f172a";
+  const isDark = theme.mode === 'dark';
 
   return (
     <WelcomeWrapper>
       <TopCenter>
         <Image
-          src={isDark ? "/assets/logo.svg" : "/assets/logo_dark.svg"}
-          alt="GeoRadar Logo"
-          width={200}
-          height={30}
+          src={isDark ? "/assets/Wordmark_White.svg" : "/assets/Wordmark_Black.svg"}
+          alt="Bellingcat Logo"
+          width={300}
+          height={60}
         />
         <h1>Color Highlighter</h1>
         <div style={{
