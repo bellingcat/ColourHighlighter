@@ -2,6 +2,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export',
   // 1. React strict mode (dev‐only checks for unsafe lifecycles, legacy APIs…)
   reactStrictMode: true,
 
