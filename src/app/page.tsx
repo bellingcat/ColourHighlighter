@@ -5,7 +5,6 @@ import styled from "styled-components"; // Styled-components for CSS-in-JS styli
 import { FC, useRef, useEffect, useState, useCallback } from "react"; // React core: component type and hooks
 import { LandingPage, ControlPanel } from "@/features"; // Feature-specific UI panels
 import { PickerMode } from "@/features/ControlPanel/ControlPanel"; // Import picker mode type
-import { DevToolbar } from "@/components"; // Dev toolbar for development features
 
 import {
   setupWebGL,
@@ -44,9 +43,6 @@ const HomePage: FC = () => {
 
   // === Window focus state for auto-hide functionality ===
   const [isWindowFocused, setIsWindowFocused] = useState(true);
-
-  // === Dev toolbar state ===
-  const [isAutoHideDisabled, setIsAutoHideDisabled] = useState(false);
 
   // === Custom-color state ===
   const [customHex, setCustomHex] = useState("#000");
@@ -114,11 +110,6 @@ const HomePage: FC = () => {
     });
   }, [eyedropper, videoRef]);
 
-  // Function: toggle auto-hide functionality
-  const toggleAutoHide = useCallback(() => {
-    setIsAutoHideDisabled(!isAutoHideDisabled);
-  }, [isAutoHideDisabled]);
-
   // Hook: whenever similarity or hex changes and the custom filter is active, re-apply it
   useEffect(() => {
     const customIdx = filterConfigs.findIndex((f) => f.id === "custom");
@@ -129,11 +120,6 @@ const HomePage: FC = () => {
 
   return (
     <Container>
-
-      {/* <DevToolbar 
-        isAutoHideDisabled={isAutoHideDisabled}
-        onToggleAutoHide={toggleAutoHide}
-      /> */}
 
       {showPanel && (
         <ControlPanel
@@ -148,7 +134,6 @@ const HomePage: FC = () => {
           applyCustom={applyCustom}
           onNewStream={handleNewStream}
           isWindowFocused={isWindowFocused}
-          isAutoHideDisabled={isAutoHideDisabled}
           pickerMode={pickerMode}
           setPickerMode={setPickerMode}
         />

@@ -45,33 +45,6 @@ const ControlContainer = styled.div<{ $chipColor: string }>`
   margin-bottom: 100px;
 `;
 
-const CloseButton = styled.button<{ $color: string }>`
-  background: ${(props) => props.theme.colors.background};
-  border: 1px solid ${({ $color }) => $color}20;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: ${(props) => props.theme.colors.textMuted};
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-
-  &:hover {
-    background: ${({ $color }) => $color}12;
-    color: ${(props) => props.theme.colors.text};
-    transform: scale(1.05);
-    border-color: ${({ $color }) => $color}40;
-  }
-
-  svg {
-    width: 12px;
-    height: 12px;
-  }
-`;
-
 const HeaderContainer = styled.div<{ $color: string }>`
   display: flex;
   align-items: center;
