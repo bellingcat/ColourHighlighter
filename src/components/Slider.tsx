@@ -17,7 +17,7 @@ interface SliderProps {
 const ControlLabel = styled.div`
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: ${({ theme }) => `${theme.colors.text}`};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -66,12 +66,9 @@ const SliderTrack = styled.div<{ $color: string; $isHue?: boolean }>`
   width: 100%;
   height: 6px;
   border-radius: 8px;
-  background: ${({ $color, $isHue }) => 
-    $isHue 
-      ? 'linear-gradient(to right, #ff0000 0%, #ffff00 16.66%, #00ff00 33.33%, #00ffff 50%, #0000ff 66.66%, #ff00ff 83.33%, #ff0000 100%)'
-      : `linear-gradient(to right, ${$color}20 0%, ${$color}40 100%)`
+  background: ${({ $color}) => `linear-gradient(to right, ${$color}20 0%, ${$color}40 100%)`
   };
-  border: 1px solid ${({ $color, $isHue }) => $isHue ? '#e5e7eb' : `${$color}22`};
+  border: 1px solid ${({ $color}) => `${$color}22`};
   display: flex;
   align-items: center;
 `;

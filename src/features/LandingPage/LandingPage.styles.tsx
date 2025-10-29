@@ -18,7 +18,7 @@ export const WelcomeWrapper = styled.div`
   transition: background-color 0.3s ease, color 0.3s ease;
 `;
 
-// Top-center container for logo and title, with animated gradient text
+// Top-center container for logo and title, with text
 export const TopCenter = styled.div`
   margin-top: 20px;
   text-align: center;
@@ -136,8 +136,8 @@ export const StepDescription = styled.p`
 
 // Tip section
 export const TipSection = styled.div`
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: ${(props) => props.theme.shadows.glow};
+  border: 1px solid ${(props) => props.theme.shadows.glow};
   border-radius: 12px;
   padding: 20px;
   margin-top: 40px;
@@ -170,7 +170,7 @@ export const WelcomeText = styled.div`
 
 // Primary button on the landing page
 export const WelcomeButton = styled.button`
-  background: linear-gradient(135deg, #facc15, #fb923c);
+
   color: #111;
   outline: none;
   border: none;
@@ -179,14 +179,13 @@ export const WelcomeButton = styled.button`
   padding: 14px 20px;
   cursor: pointer;
   font-weight: 700;
-  box-shadow: 0 4px 16px rgba(251, 180, 0, 0.3);
+
   transition: all 0.25s ease;
 
   &:hover,
   &:focus {
-    background: linear-gradient(135deg, #ffe867, #fda65b);
+    background: ${(props) => props.theme.colors.primaryHover};
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(251, 180, 0, 0.4);
   }
 `;
 
@@ -199,7 +198,7 @@ export const BigButton = styled.button`
   border-radius: 24px;
   width: clamp(110px, 16vw, 170px);
   height: clamp(110px, 16vw, 170px);
-  background: ${(props) => props.theme.gradients.primary};
+  background: ${(props) => props.theme.colors.primary};
   box-shadow: ${(props) => props.theme.shadows.glow};
   cursor: pointer;
   transition: all 0.3s ease;
@@ -258,15 +257,7 @@ export const StartLabel = styled.div`
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: 0.05em;
-  background: linear-gradient(
-    90deg,
-    #ff6ec4,
-    #7873f5,
-    #4ade80,
-    #facc15,
-    #fb923c,
-    #f43f5e
-  );
+  background: ${(props) => props.theme.colors.primary};
   background-size: 400% 100%;
   animation: shine 6s ease-in-out infinite;
   -webkit-background-clip: text;
