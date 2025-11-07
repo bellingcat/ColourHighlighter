@@ -102,7 +102,7 @@ export async function setupWebGL(): Promise<void> {
   `;
 
   // D) Load fragment shader code
-  const fragSrc = await fetch(`/assets/shader.frag`).then(r => r.text());
+  const fragSrc = await fetch(`assets/shader.frag`).then(r => r.text());
 
   // E) Compile shaders & link program
   const vs = createShader(gl, gl.VERTEX_SHADER, vertexSrc);
